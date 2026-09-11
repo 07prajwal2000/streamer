@@ -79,6 +79,10 @@ export const ProduceMessageModal: React.FC<ProduceMessageModalProps> = ({
       setError('Topic name is required');
       return;
     }
+    if (!payload.trim()) {
+      setError('Message payload cannot be empty');
+      return;
+    }
 
     setLoading(true);
     setError(null);

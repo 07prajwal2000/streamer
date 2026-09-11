@@ -122,6 +122,10 @@ export function GetKafkaTopicDetails(arg1) {
   return window['go']['main']['App']['GetKafkaTopicDetails'](arg1);
 }
 
+export function GetMCPServerStatus() {
+  return window['go']['main']['App']['GetMCPServerStatus']();
+}
+
 export function GetSQSQueueDetails(arg1) {
   return window['go']['main']['App']['GetSQSQueueDetails'](arg1);
 }
@@ -246,12 +250,20 @@ export function StartKafkaLiveTail(arg1, arg2) {
   return window['go']['main']['App']['StartKafkaLiveTail'](arg1, arg2);
 }
 
+export function StartMCPServer(arg1, arg2) {
+  return window['go']['main']['App']['StartMCPServer'](arg1, arg2);
+}
+
 export function StartSQSLivePoll(arg1) {
   return window['go']['main']['App']['StartSQSLivePoll'](arg1);
 }
 
 export function StopKafkaLiveTail() {
   return window['go']['main']['App']['StopKafkaLiveTail']();
+}
+
+export function StopMCPServer() {
+  return window['go']['main']['App']['StopMCPServer']();
 }
 
 export function StopSQSLivePoll() {

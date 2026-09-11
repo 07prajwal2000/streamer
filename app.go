@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"streamer/internal/kafkamanager"
+	"streamer/internal/mcpserver"
 	"streamer/internal/natsmanager"
 	"streamer/internal/sqsmanager"
 	"streamer/internal/storage"
@@ -19,6 +21,7 @@ type App struct {
 	natsManager  *natsmanager.NatsManager
 	kafkaManager *kafkamanager.KafkaManager
 	sqsManager   *sqsmanager.SqsManager
+	mcpServer    *mcpserver.Server
 	activeProto  string
 }
 
@@ -33,12 +36,15 @@ func NewApp() *App {
 	kmgr := kafkamanager.NewKafkaManager()
 	sqsmgr := sqsmanager.NewSqsManager()
 
-	return &App{
+	app := &App{
 		storage:      store,
 		natsManager:  mgr,
 		kafkaManager: kmgr,
 		sqsManager:   sqsmgr,
 	}
+
+	app.mcpServer = mcpserver.NewServer(&mcpBackend{app: app})
+	return app
 }
 
 // startup is called when the app starts.
@@ -47,6 +53,24 @@ func (a *App) startup(ctx context.Context) {
 	a.natsManager.SetContext(ctx)
 	a.kafkaManager.SetContext(ctx)
 	a.sqsManager.SetContext(ctx)
+
+	// Auto-start MCP server if enabled in settings
+	if a.GetSetting("mcp_auto_start", "false") == "true" {
+		portStr := a.GetSetting("mcp_port", "8765")
+		port, err := strconv.Atoi(portStr)
+		if err != nil || port <= 0 {
+			port = 8765
+		}
+		readOnly := a.GetSetting("mcp_read_only", "false") == "true"
+		_ = a.StartMCPServer(port, readOnly)
+	}
+}
+
+// shutdown is called when the app window closes.
+func (a *App) shutdown(ctx context.Context) {
+	if a.mcpServer != nil {
+		_ = a.mcpServer.Stop()
+	}
 }
 
 // GetSavedConnections returns all saved profiles from SQLite
@@ -522,4 +546,164 @@ func (a *App) ChangeSQSMessageVisibility(queueURL string, receiptHandle string, 
 
 func (a *App) RedriveDLQ(params sqsmanager.RedriveDLQParams) (*sqsmanager.RedriveDLQResult, error) {
 	return a.sqsManager.RedriveDLQ(a.ctx, params)
+}
+
+// -------------------------------------------------------------
+// Model Context Protocol (MCP) Server Bindings
+// -------------------------------------------------------------
+
+// StartMCPServer starts the embedded MCP SSE server on the specified port
+func (a *App) StartMCPServer(port int, readOnly bool) error {
+	if a.mcpServer == nil {
+		return fmt.Errorf("MCP server not initialized")
+	}
+	return a.mcpServer.Start(port, readOnly)
+}
+
+// StopMCPServer gracefully stops the running MCP server
+func (a *App) StopMCPServer() error {
+	if a.mcpServer == nil {
+		return nil
+	}
+	return a.mcpServer.Stop()
+}
+
+// GetMCPServerStatus returns the current status and metrics of the MCP server
+func (a *App) GetMCPServerStatus() mcpserver.ServerStatus {
+	if a.mcpServer == nil {
+		return mcpserver.ServerStatus{Running: false, Port: 8765, URL: "http://127.0.0.1:8765/sse"}
+	}
+	return a.mcpServer.GetStatus()
+}
+
+// -------------------------------------------------------------
+// mcpBackend Adapter: implements mcpserver.StreamerBackend
+// -------------------------------------------------------------
+
+type mcpBackend struct {
+	app *App
+}
+
+func (m *mcpBackend) GetActiveProtocol() string {
+	return m.app.activeProto
+}
+
+func (m *mcpBackend) GetConnectionStatus() (any, error) {
+	return m.app.GetConnectionStatus(), nil
+}
+
+func (m *mcpBackend) ListSavedConnections() (any, error) {
+	return m.app.GetSavedConnections()
+}
+
+func (m *mcpBackend) ConnectProfile(id string) error {
+	if m.app.storage == nil {
+		return fmt.Errorf("storage not initialized")
+	}
+	p, err := m.app.storage.GetConnection(id)
+	if err != nil {
+		return fmt.Errorf("connection profile '%s' not found: %w", id, err)
+	}
+	_, err = m.app.Connect(*p)
+	return err
+}
+
+func (m *mcpBackend) ListKafkaTopics(includeInternal bool) ([]kafkamanager.TopicSummary, error) {
+	return m.app.ListKafkaTopics(includeInternal)
+}
+
+func (m *mcpBackend) GetKafkaTopicDetails(topic string) (*kafkamanager.TopicDetailInfo, error) {
+	return m.app.GetKafkaTopicDetails(topic)
+}
+
+func (m *mcpBackend) GetKafkaBrokers() ([]kafkamanager.BrokerInfo, error) {
+	return m.app.GetKafkaBrokers()
+}
+
+func (m *mcpBackend) ListKafkaConsumerGroups() ([]kafkamanager.ConsumerGroupSummary, error) {
+	return m.app.ListKafkaConsumerGroups()
+}
+
+func (m *mcpBackend) GetKafkaConsumerGroupDetails(group string) (*kafkamanager.ConsumerGroupDetailInfo, error) {
+	return m.app.GetKafkaConsumerGroupDetails(group)
+}
+
+func (m *mcpBackend) GetKafkaMessages(params kafkamanager.GetKafkaMessagesParams) ([]kafkamanager.KafkaRecord, error) {
+	return m.app.GetKafkaMessages(params)
+}
+
+func (m *mcpBackend) ProduceKafkaRecord(params kafkamanager.ProduceKafkaRecordParams) (*kafkamanager.ProduceRecordResult, error) {
+	return m.app.ProduceKafkaRecord(params)
+}
+
+func (m *mcpBackend) CreateKafkaTopic(params kafkamanager.CreateTopicParams) error {
+	return m.app.CreateKafkaTopic(params)
+}
+
+func (m *mcpBackend) UpdateKafkaTopicPartitions(topic string, newTotal int) error {
+	return m.app.UpdateKafkaTopicPartitions(topic, newTotal)
+}
+
+func (m *mcpBackend) UpdateKafkaTopicConfigs(topic string, configs map[string]string) error {
+	return m.app.UpdateKafkaTopicConfigs(topic, configs)
+}
+
+func (m *mcpBackend) PublishNats(subject string, replyTo string, headers map[string][]string, payload string) error {
+	return m.app.PublishMessage(subject, replyTo, headers, payload)
+}
+
+func (m *mcpBackend) RequestNats(subject string, headers map[string][]string, payload string, timeoutMs int) (any, error) {
+	return m.app.RequestMessage(subject, headers, payload, timeoutMs)
+}
+
+func (m *mcpBackend) ListNatsStreams() ([]natsmanager.JSStreamInfo, error) {
+	return m.app.ListStreams()
+}
+
+func (m *mcpBackend) GetNatsStreamMessages(stream string, startSeq uint64, limit int, reverse bool) ([]natsmanager.JSStoredMsg, error) {
+	return m.app.GetStreamMsgsBatch(stream, startSeq, limit, reverse)
+}
+
+func (m *mcpBackend) CreateNatsStream(params natsmanager.StreamCreateParams) error {
+	return m.app.CreateStream(params)
+}
+
+func (m *mcpBackend) ListNatsKVBuckets() ([]natsmanager.KVBucketInfo, error) {
+	return m.app.ListKVBuckets()
+}
+
+func (m *mcpBackend) GetNatsKVEntry(bucket string, key string) (*natsmanager.KVEntryInfo, error) {
+	return m.app.GetKVEntry(bucket, key)
+}
+
+func (m *mcpBackend) PutNatsKVEntry(bucket string, key string, val string) (uint64, error) {
+	return m.app.PutKVEntry(bucket, key, val)
+}
+
+func (m *mcpBackend) ListSQSQueues(prefix string) ([]sqsmanager.SQSQueueSummary, error) {
+	return m.app.ListSQSQueues(prefix)
+}
+
+func (m *mcpBackend) GetSQSQueueDetails(queueURL string) (*sqsmanager.SQSQueueDetail, error) {
+	return m.app.GetSQSQueueDetails(queueURL)
+}
+
+func (m *mcpBackend) PollSQSMessages(params sqsmanager.PollSQSMessagesParams) ([]sqsmanager.SQSMessage, error) {
+	return m.app.PollSQSMessages(params)
+}
+
+func (m *mcpBackend) SendSQSMessage(params sqsmanager.SendSQSMessageParams) (*sqsmanager.SendSQSMessageResult, error) {
+	return m.app.SendSQSMessage(params)
+}
+
+func (m *mcpBackend) CreateSQSQueue(params sqsmanager.CreateQueueParams) (*sqsmanager.SQSQueueSummary, error) {
+	return m.app.CreateSQSQueue(params)
+}
+
+func (m *mcpBackend) UpdateSQSQueueAttributes(queueURL string, attributes map[string]string) error {
+	return m.app.UpdateSQSQueueAttributes(queueURL, attributes)
+}
+
+func (m *mcpBackend) RedriveDLQ(params sqsmanager.RedriveDLQParams) (*sqsmanager.RedriveDLQResult, error) {
+	return m.app.RedriveDLQ(params)
 }

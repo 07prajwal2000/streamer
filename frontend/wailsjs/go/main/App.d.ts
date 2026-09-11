@@ -4,6 +4,7 @@ import {storage} from '../models';
 import {natsmanager} from '../models';
 import {kafkamanager} from '../models';
 import {sqsmanager} from '../models';
+import {mcpserver} from '../models';
 
 export function ChangeSQSMessageVisibility(arg1:string,arg2:string,arg3:number):Promise<void>;
 
@@ -64,6 +65,8 @@ export function GetKafkaConsumerGroupDetails(arg1:string):Promise<kafkamanager.C
 export function GetKafkaMessages(arg1:kafkamanager.GetKafkaMessagesParams):Promise<Array<kafkamanager.KafkaRecord>>;
 
 export function GetKafkaTopicDetails(arg1:string):Promise<kafkamanager.TopicDetailInfo>;
+
+export function GetMCPServerStatus():Promise<mcpserver.ServerStatus>;
 
 export function GetSQSQueueDetails(arg1:string):Promise<sqsmanager.SQSQueueDetail>;
 
@@ -127,9 +130,13 @@ export function SetSetting(arg1:string,arg2:string):Promise<void>;
 
 export function StartKafkaLiveTail(arg1:string,arg2:Array<number>):Promise<void>;
 
+export function StartMCPServer(arg1:number,arg2:boolean):Promise<void>;
+
 export function StartSQSLivePoll(arg1:sqsmanager.PollSQSMessagesParams):Promise<void>;
 
 export function StopKafkaLiveTail():Promise<void>;
+
+export function StopMCPServer():Promise<void>;
 
 export function StopSQSLivePoll():Promise<void>;
 

@@ -184,6 +184,54 @@ func (s *Storage) GetAllConnections() ([]ConnectionProfile, error) {
 	return list, nil
 }
 
+func (s *Storage) GetConnection(id string) (*ConnectionProfile, error) {
+	row := s.db.QueryRow(`
+		SELECT id, COALESCE(protocol, 'nats'), name, url, auth_type, username, password, token, nkey_seed,
+		       creds_file_path, tls_ca_file, tls_cert_file, tls_key_file,
+		       tls_insecure, COALESCE(tls_sni, ''), client_name,
+		       COALESCE(aws_region, ''), COALESCE(aws_profile, ''),
+		       created_at, updated_at, last_connected_at
+		FROM connections
+		WHERE id = ?
+	`, id)
+
+	var p ConnectionProfile
+	var insecure int
+	var username, password, token, nkeySeed, credsFile sql.NullString
+	var tlsCA, tlsCert, tlsKey sql.NullString
+	var lastConnected sql.NullTime
+
+	err := row.Scan(
+		&p.ID, &p.Protocol, &p.Name, &p.URL, &p.AuthType,
+		&username, &password, &token, &nkeySeed,
+		&credsFile, &tlsCA, &tlsCert, &tlsKey,
+		&insecure, &p.TLSSNI, &p.ClientName,
+		&p.AWSRegion, &p.AWSProfile,
+		&p.CreatedAt, &p.UpdatedAt, &lastConnected,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if p.Protocol == "" {
+		p.Protocol = "nats"
+	}
+	p.Username = username.String
+	p.Password = password.String
+	p.Token = token.String
+	p.NKeySeed = nkeySeed.String
+	p.CredsFilePath = credsFile.String
+	p.TLSCAFile = tlsCA.String
+	p.TLSCertFile = tlsCert.String
+	p.TLSKeyFile = tlsKey.String
+	p.TLSInsecure = insecure == 1
+	if lastConnected.Valid {
+		p.LastConnectedAt = &lastConnected.Time
+	}
+
+	return &p, nil
+}
+
 func (s *Storage) SaveConnection(p ConnectionProfile) error {
 	if p.Protocol == "" {
 		p.Protocol = "nats"
