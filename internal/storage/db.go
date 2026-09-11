@@ -27,6 +27,8 @@ type ConnectionProfile struct {
 	TLSInsecure     bool       `json:"tlsInsecure"`
 	TLSSNI          string     `json:"tlsSNI,omitempty"`
 	ClientName      string     `json:"clientName"`
+	AWSRegion       string     `json:"awsRegion,omitempty"`
+	AWSProfile      string     `json:"awsProfile,omitempty"`
 	CreatedAt       time.Time  `json:"createdAt"`
 	UpdatedAt       time.Time  `json:"updatedAt"`
 	LastConnectedAt *time.Time `json:"lastConnectedAt,omitempty"`
@@ -105,6 +107,8 @@ func (s *Storage) initSchema() error {
 	// Idempotent column migrations for existing databases
 	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN protocol TEXT DEFAULT 'nats';")
 	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN tls_sni TEXT;")
+	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN aws_region TEXT;")
+	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN aws_profile TEXT;")
 
 	return nil
 }
@@ -127,7 +131,9 @@ func (s *Storage) GetAllConnections() ([]ConnectionProfile, error) {
 	rows, err := s.db.Query(`
 		SELECT id, COALESCE(protocol, 'nats'), name, url, auth_type, username, password, token, nkey_seed,
 		       creds_file_path, tls_ca_file, tls_cert_file, tls_key_file,
-		       tls_insecure, COALESCE(tls_sni, ''), client_name, created_at, updated_at, last_connected_at
+		       tls_insecure, COALESCE(tls_sni, ''), client_name,
+		       COALESCE(aws_region, ''), COALESCE(aws_profile, ''),
+		       created_at, updated_at, last_connected_at
 		FROM connections
 		ORDER BY updated_at DESC
 	`)
@@ -148,7 +154,9 @@ func (s *Storage) GetAllConnections() ([]ConnectionProfile, error) {
 			&p.ID, &p.Protocol, &p.Name, &p.URL, &p.AuthType,
 			&username, &password, &token, &nkeySeed,
 			&credsFile, &tlsCA, &tlsCert, &tlsKey,
-			&insecure, &p.TLSSNI, &p.ClientName, &p.CreatedAt, &p.UpdatedAt, &lastConnected,
+			&insecure, &p.TLSSNI, &p.ClientName,
+			&p.AWSRegion, &p.AWSProfile,
+			&p.CreatedAt, &p.UpdatedAt, &lastConnected,
 		)
 		if err != nil {
 			return nil, err
@@ -189,8 +197,8 @@ func (s *Storage) SaveConnection(p ConnectionProfile) error {
 	INSERT INTO connections (
 		id, protocol, name, url, auth_type, username, password, token, nkey_seed,
 		creds_file_path, tls_ca_file, tls_cert_file, tls_key_file,
-		tls_insecure, tls_sni, client_name, created_at, updated_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		tls_insecure, tls_sni, client_name, aws_region, aws_profile, created_at, updated_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(id) DO UPDATE SET
 		protocol = excluded.protocol,
 		name = excluded.name,
@@ -207,6 +215,8 @@ func (s *Storage) SaveConnection(p ConnectionProfile) error {
 		tls_insecure = excluded.tls_insecure,
 		tls_sni = excluded.tls_sni,
 		client_name = excluded.client_name,
+		aws_region = excluded.aws_region,
+		aws_profile = excluded.aws_profile,
 		updated_at = excluded.updated_at
 	`
 	now := time.Now().UTC()
@@ -219,7 +229,7 @@ func (s *Storage) SaveConnection(p ConnectionProfile) error {
 		p.ID, p.Protocol, p.Name, p.URL, p.AuthType,
 		p.Username, p.Password, p.Token, p.NKeySeed,
 		p.CredsFilePath, p.TLSCAFile, p.TLSCertFile, p.TLSKeyFile,
-		insecure, p.TLSSNI, p.ClientName, p.CreatedAt, p.UpdatedAt,
+		insecure, p.TLSSNI, p.ClientName, p.AWSRegion, p.AWSProfile, p.CreatedAt, p.UpdatedAt,
 	)
 	return err
 }

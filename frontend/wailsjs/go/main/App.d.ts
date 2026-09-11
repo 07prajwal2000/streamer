@@ -3,6 +3,9 @@
 import {storage} from '../models';
 import {natsmanager} from '../models';
 import {kafkamanager} from '../models';
+import {sqsmanager} from '../models';
+
+export function ChangeSQSMessageVisibility(arg1:string,arg2:string,arg3:number):Promise<void>;
 
 export function Connect(arg1:storage.ConnectionProfile):Promise<natsmanager.ServerStatus>;
 
@@ -11,6 +14,8 @@ export function CreateConsumer(arg1:natsmanager.ConsumerCreateParams):Promise<vo
 export function CreateKVBucket(arg1:natsmanager.KVBucketCreateParams):Promise<void>;
 
 export function CreateKafkaTopic(arg1:kafkamanager.CreateTopicParams):Promise<void>;
+
+export function CreateSQSQueue(arg1:sqsmanager.CreateQueueParams):Promise<sqsmanager.SQSQueueSummary>;
 
 export function CreateStream(arg1:natsmanager.StreamCreateParams):Promise<void>;
 
@@ -27,6 +32,10 @@ export function DeleteKafkaConsumerGroup(arg1:string):Promise<void>;
 export function DeleteKafkaRecordsUpTo(arg1:string,arg2:number,arg3:number):Promise<void>;
 
 export function DeleteKafkaTopic(arg1:string):Promise<void>;
+
+export function DeleteSQSMessage(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteSQSQueue(arg1:string):Promise<void>;
 
 export function DeleteStream(arg1:string):Promise<void>;
 
@@ -56,6 +65,10 @@ export function GetKafkaMessages(arg1:kafkamanager.GetKafkaMessagesParams):Promi
 
 export function GetKafkaTopicDetails(arg1:string):Promise<kafkamanager.TopicDetailInfo>;
 
+export function GetSQSQueueDetails(arg1:string):Promise<sqsmanager.SQSQueueDetail>;
+
+export function GetSQSStatus():Promise<sqsmanager.SQSClusterStatus>;
+
 export function GetSavedConnections():Promise<Array<storage.ConnectionProfile>>;
 
 export function GetSetting(arg1:string,arg2:string):Promise<string>;
@@ -74,7 +87,11 @@ export function ListKafkaConsumerGroups():Promise<Array<kafkamanager.ConsumerGro
 
 export function ListKafkaTopics(arg1:boolean):Promise<Array<kafkamanager.TopicSummary>>;
 
+export function ListSQSQueues(arg1:string):Promise<Array<sqsmanager.SQSQueueSummary>>;
+
 export function ListStreams():Promise<Array<natsmanager.JSStreamInfo>>;
+
+export function PollSQSMessages(arg1:sqsmanager.PollSQSMessagesParams):Promise<Array<sqsmanager.SQSMessage>>;
 
 export function ProduceKafkaRecord(arg1:kafkamanager.ProduceKafkaRecordParams):Promise<kafkamanager.ProduceRecordResult>;
 
@@ -88,9 +105,13 @@ export function PurgeKafkaPartition(arg1:string,arg2:number):Promise<void>;
 
 export function PurgeKafkaTopic(arg1:string):Promise<void>;
 
+export function PurgeSQSQueue(arg1:string):Promise<void>;
+
 export function PurgeStream(arg1:string,arg2:string,arg3:number):Promise<void>;
 
 export function PutKVEntry(arg1:string,arg2:string,arg3:string):Promise<number>;
+
+export function RedriveDLQ(arg1:sqsmanager.RedriveDLQParams):Promise<sqsmanager.RedriveDLQResult>;
 
 export function RequestMessage(arg1:string,arg2:Record<string, Array<string>>,arg3:string,arg4:number):Promise<natsmanager.PubSubMessage>;
 
@@ -100,11 +121,17 @@ export function SaveConnection(arg1:storage.ConnectionProfile):Promise<void>;
 
 export function SelectFile(arg1:string,arg2:string,arg3:string):Promise<string>;
 
+export function SendSQSMessage(arg1:sqsmanager.SendSQSMessageParams):Promise<sqsmanager.SendSQSMessageResult>;
+
 export function SetSetting(arg1:string,arg2:string):Promise<void>;
 
 export function StartKafkaLiveTail(arg1:string,arg2:Array<number>):Promise<void>;
 
+export function StartSQSLivePoll(arg1:sqsmanager.PollSQSMessagesParams):Promise<void>;
+
 export function StopKafkaLiveTail():Promise<void>;
+
+export function StopSQSLivePoll():Promise<void>;
 
 export function Subscribe(arg1:string,arg2:string,arg3:string):Promise<natsmanager.SubscriptionInfo>;
 
@@ -117,5 +144,9 @@ export function UpdateKVBucket(arg1:natsmanager.KVBucketCreateParams):Promise<vo
 export function UpdateKafkaTopicConfigs(arg1:string,arg2:Record<string, string>):Promise<void>;
 
 export function UpdateKafkaTopicPartitions(arg1:string,arg2:number):Promise<void>;
+
+export function UpdateSQSQueueAttributes(arg1:string,arg2:Record<string, string>):Promise<void>;
+
+export function UpdateSQSQueueTags(arg1:string,arg2:Record<string, string>,arg3:Array<string>):Promise<void>;
 
 export function UpdateStream(arg1:natsmanager.StreamCreateParams):Promise<void>;

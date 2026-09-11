@@ -908,6 +908,382 @@ export namespace natsmanager {
 
 }
 
+export namespace sqsmanager {
+	
+	export class CreateQueueParams {
+	    queueName: string;
+	    isFifo: boolean;
+	    visibilityTimeout: number;
+	    messageRetentionPeriod: number;
+	    delaySeconds: number;
+	    maximumMessageSize: number;
+	    receiveMessageWaitTimeSeconds: number;
+	    contentBasedDeduplication: boolean;
+	    deduplicationScope?: string;
+	    fifoThroughputLimit?: string;
+	    enableDlq: boolean;
+	    deadLetterTargetArn?: string;
+	    maxReceiveCount?: number;
+	    serverSideEncryption?: string;
+	    kmsMasterKeyId?: string;
+	    tags?: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateQueueParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.queueName = source["queueName"];
+	        this.isFifo = source["isFifo"];
+	        this.visibilityTimeout = source["visibilityTimeout"];
+	        this.messageRetentionPeriod = source["messageRetentionPeriod"];
+	        this.delaySeconds = source["delaySeconds"];
+	        this.maximumMessageSize = source["maximumMessageSize"];
+	        this.receiveMessageWaitTimeSeconds = source["receiveMessageWaitTimeSeconds"];
+	        this.contentBasedDeduplication = source["contentBasedDeduplication"];
+	        this.deduplicationScope = source["deduplicationScope"];
+	        this.fifoThroughputLimit = source["fifoThroughputLimit"];
+	        this.enableDlq = source["enableDlq"];
+	        this.deadLetterTargetArn = source["deadLetterTargetArn"];
+	        this.maxReceiveCount = source["maxReceiveCount"];
+	        this.serverSideEncryption = source["serverSideEncryption"];
+	        this.kmsMasterKeyId = source["kmsMasterKeyId"];
+	        this.tags = source["tags"];
+	    }
+	}
+	export class PollSQSMessagesParams {
+	    queueUrl: string;
+	    mode: string;
+	    maxMessages: number;
+	    waitTimeSeconds: number;
+	    visibilityTimeout: number;
+	    autoDelete: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PollSQSMessagesParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.queueUrl = source["queueUrl"];
+	        this.mode = source["mode"];
+	        this.maxMessages = source["maxMessages"];
+	        this.waitTimeSeconds = source["waitTimeSeconds"];
+	        this.visibilityTimeout = source["visibilityTimeout"];
+	        this.autoDelete = source["autoDelete"];
+	    }
+	}
+	export class RedriveDLQParams {
+	    sourceQueueUrl: string;
+	    targetQueueUrl: string;
+	    maxMessages: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new RedriveDLQParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.sourceQueueUrl = source["sourceQueueUrl"];
+	        this.targetQueueUrl = source["targetQueueUrl"];
+	        this.maxMessages = source["maxMessages"];
+	    }
+	}
+	export class RedriveDLQResult {
+	    messagesMoved: number;
+	    errorsCount: number;
+	    statusMessage: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RedriveDLQResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.messagesMoved = source["messagesMoved"];
+	        this.errorsCount = source["errorsCount"];
+	        this.statusMessage = source["statusMessage"];
+	    }
+	}
+	export class SQSClusterStatus {
+	    connected: boolean;
+	    connecting: boolean;
+	    protocol: string;
+	    lastError?: string;
+	    currentProfileId?: string;
+	    endpoint: string;
+	    region: string;
+	    accountId?: string;
+	    queuesCount: number;
+	    rttMs: number;
+	    isLocal: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SQSClusterStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connected = source["connected"];
+	        this.connecting = source["connecting"];
+	        this.protocol = source["protocol"];
+	        this.lastError = source["lastError"];
+	        this.currentProfileId = source["currentProfileId"];
+	        this.endpoint = source["endpoint"];
+	        this.region = source["region"];
+	        this.accountId = source["accountId"];
+	        this.queuesCount = source["queuesCount"];
+	        this.rttMs = source["rttMs"];
+	        this.isLocal = source["isLocal"];
+	    }
+	}
+	export class SQSMessageAttribute {
+	    dataType: string;
+	    stringValue?: string;
+	    binaryValue?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SQSMessageAttribute(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dataType = source["dataType"];
+	        this.stringValue = source["stringValue"];
+	        this.binaryValue = source["binaryValue"];
+	    }
+	}
+	export class SQSMessage {
+	    messageId: string;
+	    receiptHandle: string;
+	    md5OfBody: string;
+	    body: string;
+	    queueUrl: string;
+	    queueName: string;
+	    sentTimestamp: number;
+	    firstReceiveTimestamp: number;
+	    receiveCount: number;
+	    messageGroupId?: string;
+	    messageDeduplicationId?: string;
+	    sequenceNumber?: string;
+	    attributes?: Record<string, string>;
+	    messageAttributes?: Record<string, SQSMessageAttribute>;
+	
+	    static createFrom(source: any = {}) {
+	        return new SQSMessage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.messageId = source["messageId"];
+	        this.receiptHandle = source["receiptHandle"];
+	        this.md5OfBody = source["md5OfBody"];
+	        this.body = source["body"];
+	        this.queueUrl = source["queueUrl"];
+	        this.queueName = source["queueName"];
+	        this.sentTimestamp = source["sentTimestamp"];
+	        this.firstReceiveTimestamp = source["firstReceiveTimestamp"];
+	        this.receiveCount = source["receiveCount"];
+	        this.messageGroupId = source["messageGroupId"];
+	        this.messageDeduplicationId = source["messageDeduplicationId"];
+	        this.sequenceNumber = source["sequenceNumber"];
+	        this.attributes = source["attributes"];
+	        this.messageAttributes = this.convertValues(source["messageAttributes"], SQSMessageAttribute, true);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	export class SQSQueueDetail {
+	    queueUrl: string;
+	    queueName: string;
+	    isFifo: boolean;
+	    approximateNumberOfMessages: number;
+	    approximateNumberOfNotVisible: number;
+	    approximateNumberOfDelayed: number;
+	    visibilityTimeoutSeconds: number;
+	    messageRetentionSeconds: number;
+	    delaySeconds: number;
+	    createdTimestamp: number;
+	    lastModifiedTimestamp: number;
+	    queueArn: string;
+	    isDeadLetterQueue: boolean;
+	    hasRedrivePolicy: boolean;
+	    deadLetterTargetArn?: string;
+	    maxReceiveCount?: number;
+	    serverSideEncryption?: string;
+	    policy?: string;
+	    redrivePolicy?: string;
+	    redriveAllowPolicy?: string;
+	    tags?: Record<string, string>;
+	    deadLetterSourceQueues?: string[];
+	    maximumMessageSize: number;
+	    receiveMessageWaitTimeSeconds: number;
+	    deduplicationScope?: string;
+	    fifoThroughputLimit?: string;
+	    contentBasedDeduplication: boolean;
+	    kmsMasterKeyId?: string;
+	    kmsDataKeyReusePeriodSeconds?: number;
+	    sqsManagedSseEnabled: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SQSQueueDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.queueUrl = source["queueUrl"];
+	        this.queueName = source["queueName"];
+	        this.isFifo = source["isFifo"];
+	        this.approximateNumberOfMessages = source["approximateNumberOfMessages"];
+	        this.approximateNumberOfNotVisible = source["approximateNumberOfNotVisible"];
+	        this.approximateNumberOfDelayed = source["approximateNumberOfDelayed"];
+	        this.visibilityTimeoutSeconds = source["visibilityTimeoutSeconds"];
+	        this.messageRetentionSeconds = source["messageRetentionSeconds"];
+	        this.delaySeconds = source["delaySeconds"];
+	        this.createdTimestamp = source["createdTimestamp"];
+	        this.lastModifiedTimestamp = source["lastModifiedTimestamp"];
+	        this.queueArn = source["queueArn"];
+	        this.isDeadLetterQueue = source["isDeadLetterQueue"];
+	        this.hasRedrivePolicy = source["hasRedrivePolicy"];
+	        this.deadLetterTargetArn = source["deadLetterTargetArn"];
+	        this.maxReceiveCount = source["maxReceiveCount"];
+	        this.serverSideEncryption = source["serverSideEncryption"];
+	        this.policy = source["policy"];
+	        this.redrivePolicy = source["redrivePolicy"];
+	        this.redriveAllowPolicy = source["redriveAllowPolicy"];
+	        this.tags = source["tags"];
+	        this.deadLetterSourceQueues = source["deadLetterSourceQueues"];
+	        this.maximumMessageSize = source["maximumMessageSize"];
+	        this.receiveMessageWaitTimeSeconds = source["receiveMessageWaitTimeSeconds"];
+	        this.deduplicationScope = source["deduplicationScope"];
+	        this.fifoThroughputLimit = source["fifoThroughputLimit"];
+	        this.contentBasedDeduplication = source["contentBasedDeduplication"];
+	        this.kmsMasterKeyId = source["kmsMasterKeyId"];
+	        this.kmsDataKeyReusePeriodSeconds = source["kmsDataKeyReusePeriodSeconds"];
+	        this.sqsManagedSseEnabled = source["sqsManagedSseEnabled"];
+	    }
+	}
+	export class SQSQueueSummary {
+	    queueUrl: string;
+	    queueName: string;
+	    isFifo: boolean;
+	    approximateNumberOfMessages: number;
+	    approximateNumberOfNotVisible: number;
+	    approximateNumberOfDelayed: number;
+	    visibilityTimeoutSeconds: number;
+	    messageRetentionSeconds: number;
+	    delaySeconds: number;
+	    createdTimestamp: number;
+	    lastModifiedTimestamp: number;
+	    queueArn: string;
+	    isDeadLetterQueue: boolean;
+	    hasRedrivePolicy: boolean;
+	    deadLetterTargetArn?: string;
+	    maxReceiveCount?: number;
+	    serverSideEncryption?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SQSQueueSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.queueUrl = source["queueUrl"];
+	        this.queueName = source["queueName"];
+	        this.isFifo = source["isFifo"];
+	        this.approximateNumberOfMessages = source["approximateNumberOfMessages"];
+	        this.approximateNumberOfNotVisible = source["approximateNumberOfNotVisible"];
+	        this.approximateNumberOfDelayed = source["approximateNumberOfDelayed"];
+	        this.visibilityTimeoutSeconds = source["visibilityTimeoutSeconds"];
+	        this.messageRetentionSeconds = source["messageRetentionSeconds"];
+	        this.delaySeconds = source["delaySeconds"];
+	        this.createdTimestamp = source["createdTimestamp"];
+	        this.lastModifiedTimestamp = source["lastModifiedTimestamp"];
+	        this.queueArn = source["queueArn"];
+	        this.isDeadLetterQueue = source["isDeadLetterQueue"];
+	        this.hasRedrivePolicy = source["hasRedrivePolicy"];
+	        this.deadLetterTargetArn = source["deadLetterTargetArn"];
+	        this.maxReceiveCount = source["maxReceiveCount"];
+	        this.serverSideEncryption = source["serverSideEncryption"];
+	    }
+	}
+	export class SendSQSMessageParams {
+	    queueUrl: string;
+	    body: string;
+	    delaySeconds: number;
+	    messageGroupId?: string;
+	    messageDeduplicationId?: string;
+	    messageAttributes?: Record<string, SQSMessageAttribute>;
+	
+	    static createFrom(source: any = {}) {
+	        return new SendSQSMessageParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.queueUrl = source["queueUrl"];
+	        this.body = source["body"];
+	        this.delaySeconds = source["delaySeconds"];
+	        this.messageGroupId = source["messageGroupId"];
+	        this.messageDeduplicationId = source["messageDeduplicationId"];
+	        this.messageAttributes = this.convertValues(source["messageAttributes"], SQSMessageAttribute, true);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class SendSQSMessageResult {
+	    messageId: string;
+	    md5OfBody: string;
+	    sequenceNumber?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SendSQSMessageResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.messageId = source["messageId"];
+	        this.md5OfBody = source["md5OfBody"];
+	        this.sequenceNumber = source["sequenceNumber"];
+	    }
+	}
+
+}
+
 export namespace storage {
 	
 	export class ConnectionProfile {
@@ -927,6 +1303,8 @@ export namespace storage {
 	    tlsInsecure: boolean;
 	    tlsSNI?: string;
 	    clientName: string;
+	    awsRegion?: string;
+	    awsProfile?: string;
 	    // Go type: time
 	    createdAt: any;
 	    // Go type: time
@@ -956,6 +1334,8 @@ export namespace storage {
 	        this.tlsInsecure = source["tlsInsecure"];
 	        this.tlsSNI = source["tlsSNI"];
 	        this.clientName = source["clientName"];
+	        this.awsRegion = source["awsRegion"];
+	        this.awsProfile = source["awsProfile"];
 	        this.createdAt = this.convertValues(source["createdAt"], null);
 	        this.updatedAt = this.convertValues(source["updatedAt"], null);
 	        this.lastConnectedAt = this.convertValues(source["lastConnectedAt"], null);

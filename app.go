@@ -6,6 +6,7 @@ import (
 
 	"streamer/internal/kafkamanager"
 	"streamer/internal/natsmanager"
+	"streamer/internal/sqsmanager"
 	"streamer/internal/storage"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -17,6 +18,7 @@ type App struct {
 	storage      *storage.Storage
 	natsManager  *natsmanager.NatsManager
 	kafkaManager *kafkamanager.KafkaManager
+	sqsManager   *sqsmanager.SqsManager
 	activeProto  string
 }
 
@@ -29,11 +31,13 @@ func NewApp() *App {
 
 	mgr := natsmanager.NewNatsManager()
 	kmgr := kafkamanager.NewKafkaManager()
+	sqsmgr := sqsmanager.NewSqsManager()
 
 	return &App{
 		storage:      store,
 		natsManager:  mgr,
 		kafkaManager: kmgr,
+		sqsManager:   sqsmgr,
 	}
 }
 
@@ -42,6 +46,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.natsManager.SetContext(ctx)
 	a.kafkaManager.SetContext(ctx)
+	a.sqsManager.SetContext(ctx)
 }
 
 // GetSavedConnections returns all saved profiles from SQLite
@@ -87,6 +92,20 @@ func (a *App) TestConnection(p storage.ConnectionProfile) (*natsmanager.ServerSt
 			RTTMs:            ks.RTTMs,
 			ServerVersion:    "Kafka / Redpanda",
 		}, nil
+	} else if p.Protocol == "sqs" {
+		sqsStatus, err := a.sqsManager.TestConnection(p)
+		if err != nil {
+			return nil, err
+		}
+		return &natsmanager.ServerStatus{
+			Connected:        sqsStatus.Connected,
+			Protocol:         "sqs",
+			CurrentProfileID: sqsStatus.CurrentProfileID,
+			ClusterID:        sqsStatus.Endpoint,
+			ServerVersion:    sqsStatus.Region,
+			TopicsCount:      sqsStatus.QueuesCount,
+			RTTMs:            sqsStatus.RTTMs,
+		}, nil
 	}
 	return a.natsManager.TestConnection(p)
 }
@@ -95,6 +114,7 @@ func (a *App) TestConnection(p storage.ConnectionProfile) (*natsmanager.ServerSt
 func (a *App) Connect(p storage.ConnectionProfile) (*natsmanager.ServerStatus, error) {
 	if p.Protocol == "kafka" {
 		a.natsManager.Disconnect()
+		a.sqsManager.Disconnect()
 		ks, err := a.kafkaManager.Connect(p)
 		if err == nil && a.storage != nil {
 			a.activeProto = "kafka"
@@ -118,9 +138,33 @@ func (a *App) Connect(p storage.ConnectionProfile) (*natsmanager.ServerStatus, e
 			ServerVersion:    "Kafka / Redpanda",
 		}
 		return status, nil
+	} else if p.Protocol == "sqs" {
+		a.natsManager.Disconnect()
+		a.kafkaManager.Disconnect()
+		sqsStatus, err := a.sqsManager.Connect(p)
+		if err == nil && a.storage != nil {
+			a.activeProto = "sqs"
+			_ = a.storage.SaveConnection(p)
+			_ = a.storage.UpdateLastConnected(p.ID)
+		}
+		if err != nil {
+			return nil, err
+		}
+		status := &natsmanager.ServerStatus{
+			Connected:        sqsStatus.Connected,
+			Connecting:       sqsStatus.Connecting,
+			Protocol:         "sqs",
+			CurrentProfileID: sqsStatus.CurrentProfileID,
+			ClusterID:        sqsStatus.Endpoint,
+			ServerVersion:    sqsStatus.Region,
+			TopicsCount:      sqsStatus.QueuesCount,
+			RTTMs:            sqsStatus.RTTMs,
+		}
+		return status, nil
 	}
 
 	a.kafkaManager.Disconnect()
+	a.sqsManager.Disconnect()
 	status, err := a.natsManager.Connect(p)
 	if err == nil && a.storage != nil {
 		a.activeProto = "nats"
@@ -134,6 +178,7 @@ func (a *App) Connect(p storage.ConnectionProfile) (*natsmanager.ServerStatus, e
 func (a *App) Disconnect() {
 	a.natsManager.Disconnect()
 	a.kafkaManager.Disconnect()
+	a.sqsManager.Disconnect()
 	a.activeProto = ""
 }
 
@@ -155,8 +200,26 @@ func (a *App) GetConnectionStatus() natsmanager.ServerStatus {
 			RTTMs:            ks.RTTMs,
 			ServerVersion:    "Kafka / Redpanda",
 		}
+	} else if a.activeProto == "sqs" {
+		sqsStatus := a.sqsManager.GetStatus()
+		return natsmanager.ServerStatus{
+			Connected:        sqsStatus.Connected,
+			Connecting:       sqsStatus.Connecting,
+			Protocol:         "sqs",
+			LastError:        sqsStatus.LastError,
+			CurrentProfileID: sqsStatus.CurrentProfileID,
+			ClusterID:        sqsStatus.Endpoint,
+			ServerVersion:    sqsStatus.Region,
+			TopicsCount:      sqsStatus.QueuesCount,
+			RTTMs:            sqsStatus.RTTMs,
+		}
 	}
 	return a.natsManager.GetStatus()
+}
+
+// GetSQSStatus returns dedicated SQS telemetry
+func (a *App) GetSQSStatus() sqsmanager.SQSClusterStatus {
+	return a.sqsManager.GetStatus()
 }
 
 // SelectFile opens a native file dialog for selecting creds/certs
@@ -403,5 +466,60 @@ func (a *App) ProduceKafkaRecord(params kafkamanager.ProduceKafkaRecordParams) (
 	return a.kafkaManager.ProduceKafkaRecord(a.ctx, params)
 }
 
+// --- Amazon SQS Bindings ---
 
+func (a *App) ListSQSQueues(prefix string) ([]sqsmanager.SQSQueueSummary, error) {
+	return a.sqsManager.ListQueues(a.ctx, prefix)
+}
 
+func (a *App) GetSQSQueueDetails(queueURL string) (*sqsmanager.SQSQueueDetail, error) {
+	return a.sqsManager.GetQueueDetails(a.ctx, queueURL)
+}
+
+func (a *App) CreateSQSQueue(params sqsmanager.CreateQueueParams) (*sqsmanager.SQSQueueSummary, error) {
+	return a.sqsManager.CreateQueue(a.ctx, params)
+}
+
+func (a *App) DeleteSQSQueue(queueURL string) error {
+	return a.sqsManager.DeleteQueue(a.ctx, queueURL)
+}
+
+func (a *App) PurgeSQSQueue(queueURL string) error {
+	return a.sqsManager.PurgeQueue(a.ctx, queueURL)
+}
+
+func (a *App) UpdateSQSQueueAttributes(queueURL string, attributes map[string]string) error {
+	return a.sqsManager.UpdateQueueAttributes(a.ctx, queueURL, attributes)
+}
+
+func (a *App) UpdateSQSQueueTags(queueURL string, tags map[string]string, removeKeys []string) error {
+	return a.sqsManager.UpdateQueueTags(a.ctx, queueURL, tags, removeKeys)
+}
+
+func (a *App) SendSQSMessage(params sqsmanager.SendSQSMessageParams) (*sqsmanager.SendSQSMessageResult, error) {
+	return a.sqsManager.SendMessage(a.ctx, params)
+}
+
+func (a *App) PollSQSMessages(params sqsmanager.PollSQSMessagesParams) ([]sqsmanager.SQSMessage, error) {
+	return a.sqsManager.PollMessages(a.ctx, params)
+}
+
+func (a *App) StartSQSLivePoll(params sqsmanager.PollSQSMessagesParams) error {
+	return a.sqsManager.StartSQSLivePoll(params)
+}
+
+func (a *App) StopSQSLivePoll() error {
+	return a.sqsManager.StopSQSLivePoll()
+}
+
+func (a *App) DeleteSQSMessage(queueURL string, receiptHandle string) error {
+	return a.sqsManager.DeleteMessage(a.ctx, queueURL, receiptHandle)
+}
+
+func (a *App) ChangeSQSMessageVisibility(queueURL string, receiptHandle string, visibilityTimeout int32) error {
+	return a.sqsManager.ChangeMessageVisibility(a.ctx, queueURL, receiptHandle, visibilityTimeout)
+}
+
+func (a *App) RedriveDLQ(params sqsmanager.RedriveDLQParams) (*sqsmanager.RedriveDLQResult, error) {
+	return a.sqsManager.RedriveDLQ(a.ctx, params)
+}

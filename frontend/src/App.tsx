@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Inbox, MessageSquare } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { ConnectionView } from './components/ConnectionView';
 import { PubSubView } from './components/pubsub/PubSubView';
@@ -8,6 +9,8 @@ import { KafkaClusterView } from './components/kafka/KafkaClusterView';
 import { KafkaTopicsView } from './components/kafka/KafkaTopicsView';
 import { KafkaConsumerGroupsView } from './components/kafka/KafkaConsumerGroupsView';
 import { KafkaMessagesView } from './components/kafka/KafkaMessagesView';
+import { SQSQueuesView } from './components/sqs/SQSQueuesView';
+import { SQSMessagesView } from './components/sqs/SQSMessagesView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { storage, natsmanager } from '../wailsjs/go/models';
 import {
@@ -28,6 +31,7 @@ export function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('connections');
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedSqsQueueUrl, setSelectedSqsQueueUrl] = useState<string | null>(null);
   const [activeStatus, setActiveStatus] = useState<natsmanager.ServerStatus>(
     new natsmanager.ServerStatus({ connected: false, rttMs: 0 })
   );
@@ -74,9 +78,18 @@ export function App() {
       }
     });
 
+    const cancelSQSStatus = EventsOn('sqs:status', (data: any) => {
+      const s = new natsmanager.ServerStatus(data);
+      setActiveStatus(s);
+      if (!s.connected) {
+        setActiveTab('connections');
+      }
+    });
+
     return () => {
       if (cancelStatusEvent) cancelStatusEvent();
       if (cancelKafkaStatus) cancelKafkaStatus();
+      if (cancelSQSStatus) cancelSQSStatus();
     };
   }, []);
 
@@ -115,6 +128,8 @@ export function App() {
       if (status.connected) {
         if (p.protocol === 'kafka') {
           setActiveTab('kafka-cluster');
+        } else if (p.protocol === 'sqs') {
+          setActiveTab('sqs-queues');
         } else {
           setActiveTab('pubsub');
         }
@@ -214,6 +229,26 @@ export function App() {
 
         <div className={`h-full w-full flex flex-col ${activeTab === 'kafka-messages' ? '' : 'hidden'}`}>
           <KafkaMessagesView isConnected={activeStatus.connected} isActiveTab={activeTab === 'kafka-messages'} />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'sqs-queues' ? '' : 'hidden'}`}>
+          <SQSQueuesView
+            isConnected={activeStatus.connected && activeStatus.protocol === 'sqs'}
+            isActiveTab={activeTab === 'sqs-queues'}
+            onNavigateToMessages={(queueUrl) => {
+              setSelectedSqsQueueUrl(queueUrl);
+              setActiveTab('sqs-messages');
+            }}
+          />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'sqs-messages' ? '' : 'hidden'}`}>
+          <SQSMessagesView
+            isConnected={activeStatus.connected && activeStatus.protocol === 'sqs'}
+            isActiveTab={activeTab === 'sqs-messages'}
+            initialQueueUrl={selectedSqsQueueUrl}
+            onClearInitialQueue={() => setSelectedSqsQueueUrl(null)}
+          />
         </div>
       </main>
 

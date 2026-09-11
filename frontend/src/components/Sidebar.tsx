@@ -18,7 +18,8 @@ import {
   Cpu,
   HardDrive,
   Users,
-  MessageSquare
+  MessageSquare,
+  Inbox
 } from 'lucide-react';
 import { storage, natsmanager } from '../../wailsjs/go/models';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
@@ -69,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="font-semibold text-sm tracking-tight text-white flex items-center gap-1.5">
               <span>Streamer</span>
             </div>
-            <div className="text-[10px] text-gray-500 font-mono leading-none">NATS & Kafka GUI</div>
+            <div className="text-[10px] text-gray-500 font-mono leading-none">NATS, Kafka & SQS</div>
           </div>
         </div>
       </div>
@@ -139,6 +140,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <MessageSquare className="w-3.5 h-3.5 text-orange-400" />
               <span>Messages</span>
+            </button>
+          </>
+        ) : activeStatus.connected && activeStatus.protocol === 'sqs' ? (
+          <>
+            <button
+              onClick={() => onTabChange('sqs-queues')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'sqs-queues'
+                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5 text-amber-400" />
+              <span>Queues & Metrics</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('sqs-messages')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'sqs-messages'
+                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+              <span>Messages & Poller</span>
             </button>
           </>
         ) : (
@@ -215,6 +242,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               const isActive = activeStatus.connected && activeProfileId === p.id;
               const isConnecting = activeStatus.connecting && activeProfileId === p.id;
               const isKafka = p.protocol === 'kafka';
+              const isSQS = p.protocol === 'sqs';
 
               return (
                 <div
@@ -224,6 +252,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     isSelected
                       ? isKafka
                         ? 'bg-[#191512] border-orange-500/40 text-white shadow-sm'
+                        : isSQS
+                        ? 'bg-[#1a1711] border-amber-500/40 text-white shadow-sm'
                         : 'bg-[#151c27] border-blue-500/30 text-white shadow-sm'
                       : 'border-transparent text-gray-300 hover:bg-[#111720] hover:text-white'
                   }`}
@@ -232,6 +262,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div className="flex items-center gap-1.5 min-w-0">
                       {isKafka ? (
                         <Layers className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                      ) : isSQS ? (
+                        <Inbox className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                       ) : (
                         <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                       )}
@@ -259,6 +291,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           className={`p-1 rounded transition-colors ${
                             isKafka
                               ? 'hover:bg-orange-500/20 text-gray-400 hover:text-orange-400'
+                              : isSQS
+                              ? 'hover:bg-amber-500/20 text-gray-400 hover:text-amber-400'
                               : 'hover:bg-blue-500/20 text-gray-400 hover:text-blue-400'
                           }`}
                         >
@@ -268,13 +302,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   </div>
                   <div className="text-[11px] text-gray-500 truncate font-mono mt-0.5">
-                    {p.url}
+                    {p.url || (p.protocol === 'sqs' ? `AWS Cloud (${p.awsRegion || 'us-east-1'})` : '')}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-500">
                     {isKafka ? (
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-orange-500/15 text-orange-400 text-[9px] font-semibold border border-orange-500/25">
                         <Layers className="w-2.5 h-2.5" />
                         KAFKA
+                      </span>
+                    ) : isSQS ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 text-[9px] font-semibold border border-amber-500/25">
+                        <Inbox className="w-2.5 h-2.5" />
+                        SQS
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-400 text-[9px] font-semibold border border-cyan-500/25">
