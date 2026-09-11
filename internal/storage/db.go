@@ -12,9 +12,10 @@ import (
 
 type ConnectionProfile struct {
 	ID              string     `json:"id"`
+	Protocol        string     `json:"protocol"` // "nats" or "kafka" (defaults to "nats")
 	Name            string     `json:"name"`
-	URL             string     `json:"url"`
-	AuthType        string     `json:"authType"` // none, userpass, token, nkey, credentials, tls
+	URL             string     `json:"url"`      // NATS server URL(s) or Kafka bootstrap brokers
+	AuthType        string     `json:"authType"` // nats: none, userpass, token, nkey, credentials, tls | kafka: none, userpass, scram256, scram512, tls
 	Username        string     `json:"username,omitempty"`
 	Password        string     `json:"password,omitempty"`
 	Token           string     `json:"token,omitempty"`
@@ -24,6 +25,7 @@ type ConnectionProfile struct {
 	TLSCertFile     string     `json:"tlsCertFile,omitempty"`
 	TLSKeyFile      string     `json:"tlsKeyFile,omitempty"`
 	TLSInsecure     bool       `json:"tlsInsecure"`
+	TLSSNI          string     `json:"tlsSNI,omitempty"`
 	ClientName      string     `json:"clientName"`
 	CreatedAt       time.Time  `json:"createdAt"`
 	UpdatedAt       time.Time  `json:"updatedAt"`
@@ -71,6 +73,7 @@ func (s *Storage) initSchema() error {
 	query := `
 	CREATE TABLE IF NOT EXISTS connections (
 		id TEXT PRIMARY KEY,
+		protocol TEXT DEFAULT 'nats',
 		name TEXT NOT NULL,
 		url TEXT NOT NULL,
 		auth_type TEXT NOT NULL,
@@ -83,6 +86,7 @@ func (s *Storage) initSchema() error {
 		tls_cert_file TEXT,
 		tls_key_file TEXT,
 		tls_insecure INTEGER DEFAULT 0,
+		tls_sni TEXT,
 		client_name TEXT DEFAULT 'Streamer',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -94,8 +98,15 @@ func (s *Storage) initSchema() error {
 		value TEXT NOT NULL
 	);
 	`
-	_, err := s.db.Exec(query)
-	return err
+	if _, err := s.db.Exec(query); err != nil {
+		return err
+	}
+
+	// Idempotent column migrations for existing databases
+	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN protocol TEXT DEFAULT 'nats';")
+	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN tls_sni TEXT;")
+
+	return nil
 }
 
 func (s *Storage) GetSetting(key string, defaultValue string) string {
@@ -114,9 +125,9 @@ func (s *Storage) SetSetting(key string, value string) error {
 
 func (s *Storage) GetAllConnections() ([]ConnectionProfile, error) {
 	rows, err := s.db.Query(`
-		SELECT id, name, url, auth_type, username, password, token, nkey_seed,
+		SELECT id, COALESCE(protocol, 'nats'), name, url, auth_type, username, password, token, nkey_seed,
 		       creds_file_path, tls_ca_file, tls_cert_file, tls_key_file,
-		       tls_insecure, client_name, created_at, updated_at, last_connected_at
+		       tls_insecure, COALESCE(tls_sni, ''), client_name, created_at, updated_at, last_connected_at
 		FROM connections
 		ORDER BY updated_at DESC
 	`)
@@ -134,15 +145,18 @@ func (s *Storage) GetAllConnections() ([]ConnectionProfile, error) {
 		var lastConnected sql.NullTime
 
 		err := rows.Scan(
-			&p.ID, &p.Name, &p.URL, &p.AuthType,
+			&p.ID, &p.Protocol, &p.Name, &p.URL, &p.AuthType,
 			&username, &password, &token, &nkeySeed,
 			&credsFile, &tlsCA, &tlsCert, &tlsKey,
-			&insecure, &p.ClientName, &p.CreatedAt, &p.UpdatedAt, &lastConnected,
+			&insecure, &p.TLSSNI, &p.ClientName, &p.CreatedAt, &p.UpdatedAt, &lastConnected,
 		)
 		if err != nil {
 			return nil, err
 		}
 
+		if p.Protocol == "" {
+			p.Protocol = "nats"
+		}
 		p.Username = username.String
 		p.Password = password.String
 		p.Token = token.String
@@ -163,6 +177,9 @@ func (s *Storage) GetAllConnections() ([]ConnectionProfile, error) {
 }
 
 func (s *Storage) SaveConnection(p ConnectionProfile) error {
+	if p.Protocol == "" {
+		p.Protocol = "nats"
+	}
 	insecure := 0
 	if p.TLSInsecure {
 		insecure = 1
@@ -170,11 +187,12 @@ func (s *Storage) SaveConnection(p ConnectionProfile) error {
 
 	query := `
 	INSERT INTO connections (
-		id, name, url, auth_type, username, password, token, nkey_seed,
+		id, protocol, name, url, auth_type, username, password, token, nkey_seed,
 		creds_file_path, tls_ca_file, tls_cert_file, tls_key_file,
-		tls_insecure, client_name, created_at, updated_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		tls_insecure, tls_sni, client_name, created_at, updated_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(id) DO UPDATE SET
+		protocol = excluded.protocol,
 		name = excluded.name,
 		url = excluded.url,
 		auth_type = excluded.auth_type,
@@ -187,6 +205,7 @@ func (s *Storage) SaveConnection(p ConnectionProfile) error {
 		tls_cert_file = excluded.tls_cert_file,
 		tls_key_file = excluded.tls_key_file,
 		tls_insecure = excluded.tls_insecure,
+		tls_sni = excluded.tls_sni,
 		client_name = excluded.client_name,
 		updated_at = excluded.updated_at
 	`
@@ -197,10 +216,10 @@ func (s *Storage) SaveConnection(p ConnectionProfile) error {
 	p.UpdatedAt = now
 
 	_, err := s.db.Exec(query,
-		p.ID, p.Name, p.URL, p.AuthType,
+		p.ID, p.Protocol, p.Name, p.URL, p.AuthType,
 		p.Username, p.Password, p.Token, p.NKeySeed,
 		p.CredsFilePath, p.TLSCAFile, p.TLSCertFile, p.TLSKeyFile,
-		insecure, p.ClientName, p.CreatedAt, p.UpdatedAt,
+		insecure, p.TLSSNI, p.ClientName, p.CreatedAt, p.UpdatedAt,
 	)
 	return err
 }

@@ -14,6 +14,10 @@ export function CreateKVBucket(arg1) {
   return window['go']['main']['App']['CreateKVBucket'](arg1);
 }
 
+export function CreateKafkaTopic(arg1) {
+  return window['go']['main']['App']['CreateKafkaTopic'](arg1);
+}
+
 export function CreateStream(arg1) {
   return window['go']['main']['App']['CreateStream'](arg1);
 }
@@ -32,6 +36,18 @@ export function DeleteKVBucket(arg1) {
 
 export function DeleteKVEntry(arg1, arg2) {
   return window['go']['main']['App']['DeleteKVEntry'](arg1, arg2);
+}
+
+export function DeleteKafkaConsumerGroup(arg1) {
+  return window['go']['main']['App']['DeleteKafkaConsumerGroup'](arg1);
+}
+
+export function DeleteKafkaRecordsUpTo(arg1, arg2, arg3) {
+  return window['go']['main']['App']['DeleteKafkaRecordsUpTo'](arg1, arg2, arg3);
+}
+
+export function DeleteKafkaTopic(arg1) {
+  return window['go']['main']['App']['DeleteKafkaTopic'](arg1);
 }
 
 export function DeleteStream(arg1) {
@@ -66,6 +82,30 @@ export function GetKVHistory(arg1, arg2) {
   return window['go']['main']['App']['GetKVHistory'](arg1, arg2);
 }
 
+export function GetKafkaBrokerConfigs(arg1) {
+  return window['go']['main']['App']['GetKafkaBrokerConfigs'](arg1);
+}
+
+export function GetKafkaBrokers() {
+  return window['go']['main']['App']['GetKafkaBrokers']();
+}
+
+export function GetKafkaClusterStatus() {
+  return window['go']['main']['App']['GetKafkaClusterStatus']();
+}
+
+export function GetKafkaConsumerGroupDetails(arg1) {
+  return window['go']['main']['App']['GetKafkaConsumerGroupDetails'](arg1);
+}
+
+export function GetKafkaMessages(arg1) {
+  return window['go']['main']['App']['GetKafkaMessages'](arg1);
+}
+
+export function GetKafkaTopicDetails(arg1) {
+  return window['go']['main']['App']['GetKafkaTopicDetails'](arg1);
+}
+
 export function GetSavedConnections() {
   return window['go']['main']['App']['GetSavedConnections']();
 }
@@ -94,8 +134,20 @@ export function ListKVEntries(arg1) {
   return window['go']['main']['App']['ListKVEntries'](arg1);
 }
 
+export function ListKafkaConsumerGroups() {
+  return window['go']['main']['App']['ListKafkaConsumerGroups']();
+}
+
+export function ListKafkaTopics(arg1) {
+  return window['go']['main']['App']['ListKafkaTopics'](arg1);
+}
+
 export function ListStreams() {
   return window['go']['main']['App']['ListStreams']();
+}
+
+export function ProduceKafkaRecord(arg1) {
+  return window['go']['main']['App']['ProduceKafkaRecord'](arg1);
 }
 
 export function PublishMessage(arg1, arg2, arg3, arg4) {
@@ -110,6 +162,14 @@ export function PurgeKVEntry(arg1, arg2) {
   return window['go']['main']['App']['PurgeKVEntry'](arg1, arg2);
 }
 
+export function PurgeKafkaPartition(arg1, arg2) {
+  return window['go']['main']['App']['PurgeKafkaPartition'](arg1, arg2);
+}
+
+export function PurgeKafkaTopic(arg1) {
+  return window['go']['main']['App']['PurgeKafkaTopic'](arg1);
+}
+
 export function PurgeStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['PurgeStream'](arg1, arg2, arg3);
 }
@@ -122,6 +182,10 @@ export function RequestMessage(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['RequestMessage'](arg1, arg2, arg3, arg4);
 }
 
+export function ResetKafkaConsumerGroupOffsets(arg1) {
+  return window['go']['main']['App']['ResetKafkaConsumerGroupOffsets'](arg1);
+}
+
 export function SaveConnection(arg1) {
   return window['go']['main']['App']['SaveConnection'](arg1);
 }
@@ -132,6 +196,14 @@ export function SelectFile(arg1, arg2, arg3) {
 
 export function SetSetting(arg1, arg2) {
   return window['go']['main']['App']['SetSetting'](arg1, arg2);
+}
+
+export function StartKafkaLiveTail(arg1, arg2) {
+  return window['go']['main']['App']['StartKafkaLiveTail'](arg1, arg2);
+}
+
+export function StopKafkaLiveTail() {
+  return window['go']['main']['App']['StopKafkaLiveTail']();
 }
 
 export function Subscribe(arg1, arg2, arg3) {
@@ -148,6 +220,14 @@ export function Unsubscribe(arg1) {
 
 export function UpdateKVBucket(arg1) {
   return window['go']['main']['App']['UpdateKVBucket'](arg1);
+}
+
+export function UpdateKafkaTopicConfigs(arg1, arg2) {
+  return window['go']['main']['App']['UpdateKafkaTopicConfigs'](arg1, arg2);
+}
+
+export function UpdateKafkaTopicPartitions(arg1, arg2) {
+  return window['go']['main']['App']['UpdateKafkaTopicPartitions'](arg1, arg2);
 }
 
 export function UpdateStream(arg1) {

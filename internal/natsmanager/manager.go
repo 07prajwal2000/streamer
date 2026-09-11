@@ -20,6 +20,7 @@ type ServerStatus struct {
 	Connected        bool     `json:"connected"`
 	Connecting       bool     `json:"connecting"`
 	Reconnecting     bool     `json:"reconnecting"`
+	Protocol         string   `json:"protocol"` // "nats" or "kafka"
 	LastError        string   `json:"lastError,omitempty"`
 	CurrentProfileID string   `json:"currentProfileId,omitempty"`
 	ServerID         string   `json:"serverId,omitempty"`
@@ -34,6 +35,12 @@ type ServerStatus struct {
 	RTTMs            float64  `json:"rttMs"`
 	ConnectedURL     string   `json:"connectedUrl,omitempty"`
 	DiscoveredURLs   []string `json:"discoveredUrls,omitempty"`
+	// Kafka fields
+	ClusterID        string   `json:"clusterId,omitempty"`
+	ControllerID     int32    `json:"controllerId,omitempty"`
+	BrokersCount     int      `json:"brokersCount,omitempty"`
+	TopicsCount      int      `json:"topicsCount,omitempty"`
+	PartitionsCount  int      `json:"partitionsCount,omitempty"`
 }
 
 type PubSubMessage struct {
@@ -69,7 +76,7 @@ type NatsManager struct {
 
 func NewNatsManager() *NatsManager {
 	return &NatsManager{
-		status:        ServerStatus{Connected: false},
+		status:        ServerStatus{Connected: false, Protocol: "nats"},
 		subscriptions: make(map[string]*nats.Subscription),
 		subMeta:       make(map[string]*SubscriptionInfo),
 	}
@@ -88,6 +95,7 @@ func (m *NatsManager) buildOptions(p *storage.ConnectionProfile) ([]nats.Option,
 		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
 			m.mu.Lock()
 			m.status.Connected = false
+			m.status.Protocol = "nats"
 			if err != nil {
 				m.status.LastError = err.Error()
 			}
@@ -97,6 +105,7 @@ func (m *NatsManager) buildOptions(p *storage.ConnectionProfile) ([]nats.Option,
 		nats.ReconnectHandler(func(nc *nats.Conn) {
 			m.mu.Lock()
 			m.status.Connected = true
+			m.status.Protocol = "nats"
 			m.status.Reconnecting = false
 			m.status.LastError = ""
 			m.mu.Unlock()
@@ -107,6 +116,7 @@ func (m *NatsManager) buildOptions(p *storage.ConnectionProfile) ([]nats.Option,
 			m.status.Connected = false
 			m.status.Connecting = false
 			m.status.Reconnecting = false
+			m.status.Protocol = "nats"
 			m.mu.Unlock()
 			m.emitStatus()
 		}),
@@ -144,17 +154,19 @@ func (m *NatsManager) buildOptions(p *storage.ConnectionProfile) ([]nats.Option,
 		if p.TLSCAFile != "" {
 			caCert, err := os.ReadFile(p.TLSCAFile)
 			if err != nil {
-				return nil, fmt.Errorf("failed to read TLS CA file: %w", err)
+				return nil, fmt.Errorf("failed to read CA file: %w", err)
 			}
-			caPool := x509.NewCertPool()
-			caPool.AppendCertsFromPEM(caCert)
-			tlsConfig.RootCAs = caPool
+			caCertPool := x509.NewCertPool()
+			if !caCertPool.AppendCertsFromPEM(caCert) {
+				return nil, fmt.Errorf("failed to parse CA certificate")
+			}
+			tlsConfig.RootCAs = caCertPool
 		}
 
 		if p.TLSCertFile != "" && p.TLSKeyFile != "" {
 			cert, err := tls.LoadX509KeyPair(p.TLSCertFile, p.TLSKeyFile)
 			if err != nil {
-				return nil, fmt.Errorf("failed to load TLS client cert/key: %w", err)
+				return nil, fmt.Errorf("failed to load client certificate and key: %w", err)
 			}
 			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
@@ -165,21 +177,13 @@ func (m *NatsManager) buildOptions(p *storage.ConnectionProfile) ([]nats.Option,
 	return opts, nil
 }
 
+// TestConnection verifies connectivity without affecting active connection
 func (m *NatsManager) TestConnection(p storage.ConnectionProfile) (*ServerStatus, error) {
 	m.mu.RLock()
-	// If this profile is the one currently connected, test ping directly on the active connection!
-	if m.nc != nil && m.nc.IsConnected() && m.profile != nil && m.profile.ID == p.ID {
-		nc := m.nc
+	if m.status.Connected && m.profile != nil && m.profile.ID == p.ID {
+		s := m.status
 		m.mu.RUnlock()
-		rtt, err := nc.RTT()
-		if err != nil {
-			return nil, fmt.Errorf("ping failed: %w", err)
-		}
-		m.mu.Lock()
-		m.status.RTTMs = float64(rtt.Microseconds()) / 1000.0
-		status := m.status
-		m.mu.Unlock()
-		return &status, nil
+		return &s, nil
 	}
 	m.mu.RUnlock()
 
@@ -226,6 +230,7 @@ func (m *NatsManager) TestConnection(p storage.ConnectionProfile) (*ServerStatus
 	rtt, _ := nc.RTT()
 	status := &ServerStatus{
 		Connected:        true,
+		Protocol:         "nats",
 		ServerID:         nc.ConnectedServerId(),
 		ServerVersion:    nc.ConnectedServerVersion(),
 		RTTMs:            float64(rtt.Microseconds()) / 1000.0,
@@ -233,13 +238,21 @@ func (m *NatsManager) TestConnection(p storage.ConnectionProfile) (*ServerStatus
 		HeadersSupported: nc.HeadersSupported(),
 	}
 
+	if js, err := nc.JetStream(); err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if _, err := js.AccountInfo(nats.Context(ctx)); err == nil {
+			status.JetStream = true
+		}
+	}
+
 	return status, nil
 }
 
+// Connect establishes the active connection
 func (m *NatsManager) Connect(p storage.ConnectionProfile) (*ServerStatus, error) {
 	m.mu.Lock()
 	if m.nc != nil {
-		m.cleanSubscriptionsLocked()
 		m.nc.Close()
 		m.nc = nil
 	}
@@ -250,6 +263,7 @@ func (m *NatsManager) Connect(p storage.ConnectionProfile) (*ServerStatus, error
 
 	m.status = ServerStatus{
 		Connecting:       true,
+		Protocol:         "nats",
 		CurrentProfileID: p.ID,
 	}
 	m.profile = &p
@@ -277,6 +291,7 @@ func (m *NatsManager) Connect(p storage.ConnectionProfile) (*ServerStatus, error
 	m.status = ServerStatus{
 		Connected:        true,
 		Connecting:       false,
+		Protocol:         "nats",
 		CurrentProfileID: p.ID,
 		ServerID:         nc.ConnectedServerId(),
 		ServerVersion:    nc.ConnectedServerVersion(),
@@ -314,7 +329,7 @@ func (m *NatsManager) Disconnect() {
 		m.nc.Close()
 		m.nc = nil
 	}
-	m.status = ServerStatus{Connected: false}
+	m.status = ServerStatus{Connected: false, Protocol: "nats"}
 	m.profile = nil
 	m.mu.Unlock()
 	m.emitStatus()
@@ -336,6 +351,7 @@ func (m *NatsManager) setError(errStr string) {
 	m.mu.Lock()
 	m.status.Connected = false
 	m.status.Connecting = false
+	m.status.Protocol = "nats"
 	m.status.LastError = errStr
 	m.mu.Unlock()
 	m.emitStatus()

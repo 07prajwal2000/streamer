@@ -12,6 +12,9 @@ import {
   ShieldCheck, 
   Server,
   Layers,
+  Crown,
+  Cpu,
+  Radio,
   Clock
 } from 'lucide-react';
 import { storage, natsmanager } from '../../wailsjs/go/models';
@@ -97,13 +100,26 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
     }
   };
 
+  const isKafka = form.protocol === 'kafka';
+
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0d1117] overflow-y-auto">
       {/* Top Action Bar */}
       <div className="h-14 px-6 border-b border-[#1e2530] flex items-center justify-between bg-[#0e131b]/60 backdrop-blur sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-white tracking-tight">
-            {form.name || 'New Connection Profile'}
+          <h1 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
+            <span>{form.name || 'New Connection Profile'}</span>
+            {isKafka ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30">
+                <Layers className="w-3 h-3 text-orange-400" />
+                Kafka / Redpanda
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+                <Zap className="w-3 h-3 text-cyan-400" />
+                NATS
+              </span>
+            )}
           </h1>
           {isActive && (
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -185,45 +201,87 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
         {/* Live Server Telemetry Card if Connected */}
         {isActive && activeStatus.connected && (
           <div className="grid grid-cols-4 gap-3 p-4 rounded-xl bg-[#111722] border border-[#1e2736]">
-            <div className="space-y-1">
-              <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
-                <Server className="w-3 h-3 text-blue-400" /> Version
-              </span>
-              <div className="text-xs font-mono font-medium text-gray-200">
-                {activeStatus.serverVersion || 'NATS Server'}
-              </div>
-            </div>
+            {isKafka ? (
+              <>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Radio className="w-3 h-3 text-orange-400" /> Cluster ID
+                  </span>
+                  <div className="text-xs font-mono font-medium text-gray-200 truncate" title={activeStatus.clusterId || 'Standard Cluster'}>
+                    {activeStatus.clusterId || 'Standard Cluster'}
+                  </div>
+                </div>
 
-            <div className="space-y-1">
-              <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
-                <Activity className="w-3 h-3 text-emerald-400" /> RTT Latency
-              </span>
-              <div className="text-xs font-mono font-medium text-emerald-400">
-                {activeStatus.rttMs.toFixed(2)} ms
-              </div>
-            </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Activity className="w-3 h-3 text-emerald-400" /> RTT Latency
+                  </span>
+                  <div className="text-xs font-mono font-medium text-emerald-400">
+                    {activeStatus.rttMs.toFixed(2)} ms
+                  </div>
+                </div>
 
-            <div className="space-y-1">
-              <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
-                <Layers className="w-3 h-3 text-purple-400" /> JetStream
-              </span>
-              <div className="text-xs font-medium">
-                {activeStatus.jetStream ? (
-                  <span className="text-purple-400 font-semibold">Enabled</span>
-                ) : (
-                  <span className="text-gray-500">Disabled</span>
-                )}
-              </div>
-            </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Crown className="w-3 h-3 text-amber-400" /> Controller
+                  </span>
+                  <div className="text-xs font-mono font-medium text-amber-300">
+                    Node #{activeStatus.controllerId}
+                  </div>
+                </div>
 
-            <div className="space-y-1">
-              <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-cyan-400" /> Headers
-              </span>
-              <div className="text-xs font-mono text-gray-300">
-                {activeStatus.headersSupported ? 'Supported' : 'No'}
-              </div>
-            </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Cpu className="w-3 h-3 text-blue-400" /> Nodes
+                  </span>
+                  <div className="text-xs font-mono text-gray-300">
+                    {activeStatus.brokersCount || 1} Brokers / {activeStatus.topicsCount || 0} Topics
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Server className="w-3 h-3 text-blue-400" /> Version
+                  </span>
+                  <div className="text-xs font-mono font-medium text-gray-200">
+                    {activeStatus.serverVersion || 'NATS Server'}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Activity className="w-3 h-3 text-emerald-400" /> RTT Latency
+                  </span>
+                  <div className="text-xs font-mono font-medium text-emerald-400">
+                    {activeStatus.rttMs.toFixed(2)} ms
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-purple-400" /> JetStream
+                  </span>
+                  <div className="text-xs font-medium">
+                    {activeStatus.jetStream ? (
+                      <span className="text-purple-400 font-semibold">Enabled</span>
+                    ) : (
+                      <span className="text-gray-500">Disabled</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-cyan-400" /> Headers
+                  </span>
+                  <div className="text-xs font-mono text-gray-300">
+                    {activeStatus.headersSupported ? 'Supported' : 'No'}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -264,6 +322,68 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
         {/* Tab 1: General */}
         {activeTab === 'general' && (
           <div className="space-y-4">
+            {/* Protocol Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-gray-300">Streaming Engine / Protocol</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateField('protocol', 'nats');
+                    if (!form.url || form.url.includes('9092')) {
+                      updateField('url', 'nats://127.0.0.1:4222');
+                    }
+                    if (form.authType === 'scram256' || form.authType === 'scram512') {
+                      updateField('authType', 'none');
+                    }
+                  }}
+                  className={`p-3 rounded-xl border flex items-center gap-3 text-left transition-all ${
+                    !isKafka
+                      ? 'bg-cyan-500/10 border-cyan-500/30 text-white shadow-sm'
+                      : 'bg-[#131923] border-[#232c3d] text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    !isKafka ? 'bg-cyan-500/20 text-cyan-400' : 'bg-[#1b2330] text-gray-400'
+                  }`}>
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-xs text-white">NATS Core & JetStream</div>
+                    <div className="text-[10px] text-gray-400">High-performance pub/sub, streams & KV</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateField('protocol', 'kafka');
+                    if (!form.url || form.url.includes('4222')) {
+                      updateField('url', '127.0.0.1:9092');
+                    }
+                    if (form.authType === 'token' || form.authType === 'credentials' || form.authType === 'nkey') {
+                      updateField('authType', 'none');
+                    }
+                  }}
+                  className={`p-3 rounded-xl border flex items-center gap-3 text-left transition-all ${
+                    isKafka
+                      ? 'bg-orange-500/10 border-orange-500/30 text-white shadow-sm'
+                      : 'bg-[#131923] border-[#232c3d] text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    isKafka ? 'bg-orange-500/20 text-orange-400' : 'bg-[#1b2330] text-gray-400'
+                  }`}>
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-xs text-white">Apache Kafka / Redpanda</div>
+                    <div className="text-[10px] text-gray-400">Distributed log, partitions & consumer groups</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-300">Profile Name</label>
@@ -271,13 +391,15 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   type="text"
                   value={form.name}
                   onChange={(e) => updateField('name', e.target.value)}
-                  placeholder="e.g. Local Dev NATS"
+                  placeholder={isKafka ? "e.g. Local Dev Kafka" : "e.g. Local Dev NATS"}
                   className="w-full bg-[#131923] border border-[#232c3d] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none transition-colors"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-300">Client Name</label>
+                <label className="text-xs font-medium text-gray-300">
+                  {isKafka ? 'Client ID (client.id)' : 'Client Name'}
+                </label>
                 <input
                   type="text"
                   value={form.clientName || 'Streamer'}
@@ -289,16 +411,20 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-300">NATS Server URL(s)</label>
+              <label className="text-xs font-medium text-gray-300">
+                {isKafka ? 'Kafka Bootstrap Broker(s)' : 'NATS Server URL(s)'}
+              </label>
               <input
                 type="text"
                 value={form.url}
                 onChange={(e) => updateField('url', e.target.value)}
-                placeholder="nats://127.0.0.1:4222 or nats://demo.nats.io:4222"
+                placeholder={isKafka ? "127.0.0.1:9092 or broker1:9092, broker2:9092" : "nats://127.0.0.1:4222 or nats://demo.nats.io:4222"}
                 className="w-full bg-[#131923] border border-[#232c3d] focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none transition-colors"
               />
               <p className="text-[11px] text-gray-500">
-                Comma-separated URLs are supported for cluster failover (e.g. <code className="text-gray-400">nats://srv1:4222, nats://srv2:4222</code>).
+                {isKafka
+                  ? "Comma-separated broker addresses (e.g. 127.0.0.1:9092, localhost:9093)."
+                  : "Comma-separated URLs are supported for cluster failover (e.g. nats://srv1:4222, nats://srv2:4222)."}
               </p>
             </div>
           </div>
@@ -310,49 +436,78 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-gray-300">Authentication Method</label>
               <div className="grid grid-cols-5 gap-2">
-                {[
-                  { id: 'none', label: 'None' },
-                  { id: 'userpass', label: 'User / Pass' },
-                  { id: 'token', label: 'Token' },
-                  { id: 'credentials', label: 'Credentials' },
-                  { id: 'nkey', label: 'NKey' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => updateField('authType', item.id)}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
-                      form.authType === item.id
-                        ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                        : 'bg-[#131923] border-[#232c3d] text-gray-400 hover:text-gray-200'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+                {isKafka ? (
+                  [
+                    { id: 'none', label: 'PLAINTEXT' },
+                    { id: 'userpass', label: 'SASL / PLAIN' },
+                    { id: 'scram256', label: 'SCRAM-256' },
+                    { id: 'scram512', label: 'SCRAM-512' },
+                    { id: 'tls', label: 'mTLS' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => updateField('authType', item.id)}
+                      className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
+                        form.authType === item.id
+                          ? 'bg-orange-500/20 border-orange-500 text-orange-400'
+                          : 'bg-[#131923] border-[#232c3d] text-gray-400 hover:text-gray-200'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))
+                ) : (
+                  [
+                    { id: 'none', label: 'None' },
+                    { id: 'userpass', label: 'User / Pass' },
+                    { id: 'token', label: 'Token' },
+                    { id: 'credentials', label: 'Credentials' },
+                    { id: 'nkey', label: 'NKey' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => updateField('authType', item.id)}
+                      className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
+                        form.authType === item.id
+                          ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                          : 'bg-[#131923] border-[#232c3d] text-gray-400 hover:text-gray-200'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
             {form.authType === 'none' && (
               <div className="p-4 rounded-lg bg-[#111722] border border-[#1e2736] text-xs text-gray-400">
-                Anonymous access. No credentials or tokens will be provided upon connecting.
+                {isKafka
+                  ? "PLAINTEXT unauthenticated connection. Standard for local Docker/Kubernetes instances."
+                  : "Anonymous access. No credentials or tokens will be provided upon connecting."}
               </div>
             )}
 
-            {form.authType === 'userpass' && (
+            {(form.authType === 'userpass' || form.authType === 'scram256' || form.authType === 'scram512') && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-300">Username</label>
+                  <label className="text-xs font-medium text-gray-300">
+                    {isKafka ? 'SASL Username' : 'Username'}
+                  </label>
                   <input
                     type="text"
                     value={form.username || ''}
                     onChange={(e) => updateField('username', e.target.value)}
-                    placeholder="Username"
+                    placeholder={isKafka ? "e.g. admin or alice" : "Username"}
                     className="w-full bg-[#131923] border border-[#232c3d] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-300">Password</label>
+                  <label className="text-xs font-medium text-gray-300">
+                    {isKafka ? 'SASL Password' : 'Password'}
+                  </label>
                   <input
                     type="password"
                     value={form.password || ''}
@@ -364,7 +519,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
               </div>
             )}
 
-            {form.authType === 'token' && (
+            {form.authType === 'token' && !isKafka && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-300">Authentication Token</label>
                 <input
@@ -377,7 +532,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
               </div>
             )}
 
-            {form.authType === 'credentials' && (
+            {form.authType === 'credentials' && !isKafka && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-300">Credentials File (.creds)</label>
                 <div className="flex gap-2">
@@ -399,7 +554,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
               </div>
             )}
 
-            {form.authType === 'nkey' && (
+            {form.authType === 'nkey' && !isKafka && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-300">NKey Seed</label>
                 <input
@@ -409,6 +564,12 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   placeholder="SUA... or Path to seed file"
                   className="w-full bg-[#131923] border border-[#232c3d] focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none"
                 />
+              </div>
+            )}
+
+            {form.authType === 'tls' && isKafka && (
+              <div className="p-4 rounded-lg bg-[#111722] border border-[#1e2736] text-xs text-gray-400">
+                Mutual TLS (mTLS) authentication. Configure client certificate and private key in the <span className="text-orange-400 font-semibold cursor-pointer" onClick={() => setActiveTab('tls')}>TLS / Security tab</span>.
               </div>
             )}
           </div>
@@ -450,6 +611,22 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                 </button>
               </div>
             </div>
+
+            {isKafka && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-300">TLS Server Name Indication (SNI)</label>
+                <input
+                  type="text"
+                  value={form.tlsSNI || ''}
+                  onChange={(e) => updateField('tlsSNI', e.target.value)}
+                  placeholder="e.g. pkc-xxxxx.confluent.cloud"
+                  className="w-full bg-[#131923] border border-[#232c3d] focus:border-orange-500 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none transition-colors"
+                />
+                <p className="text-[11px] text-gray-500">
+                  Optional SNI hostname override for cloud Kafka providers or SNI routing proxies.
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">

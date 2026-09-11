@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"streamer/internal/kafkamanager"
 	"streamer/internal/natsmanager"
 	"streamer/internal/storage"
 
@@ -12,9 +13,11 @@ import (
 
 // App struct
 type App struct {
-	ctx         context.Context
-	storage     *storage.Storage
-	natsManager *natsmanager.NatsManager
+	ctx          context.Context
+	storage      *storage.Storage
+	natsManager  *natsmanager.NatsManager
+	kafkaManager *kafkamanager.KafkaManager
+	activeProto  string
 }
 
 // NewApp creates a new App application struct
@@ -25,10 +28,12 @@ func NewApp() *App {
 	}
 
 	mgr := natsmanager.NewNatsManager()
+	kmgr := kafkamanager.NewKafkaManager()
 
 	return &App{
-		storage:     store,
-		natsManager: mgr,
+		storage:      store,
+		natsManager:  mgr,
+		kafkaManager: kmgr,
 	}
 }
 
@@ -36,6 +41,7 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.natsManager.SetContext(ctx)
+	a.kafkaManager.SetContext(ctx)
 }
 
 // GetSavedConnections returns all saved profiles from SQLite
@@ -62,16 +68,62 @@ func (a *App) DeleteConnection(id string) error {
 	return a.storage.DeleteConnection(id)
 }
 
-// TestConnection verifies NATS connectivity without disconnecting active connection
+// TestConnection verifies connectivity without disconnecting active connection
 func (a *App) TestConnection(p storage.ConnectionProfile) (*natsmanager.ServerStatus, error) {
+	if p.Protocol == "kafka" {
+		ks, err := a.kafkaManager.TestConnection(p)
+		if err != nil {
+			return nil, err
+		}
+		return &natsmanager.ServerStatus{
+			Connected:        ks.Connected,
+			Protocol:         "kafka",
+			CurrentProfileID: ks.CurrentProfileID,
+			ClusterID:        ks.ClusterID,
+			ControllerID:     ks.ControllerID,
+			BrokersCount:     ks.BrokersCount,
+			TopicsCount:      ks.TopicsCount,
+			PartitionsCount:  ks.PartitionsCount,
+			RTTMs:            ks.RTTMs,
+			ServerVersion:    "Kafka / Redpanda",
+		}, nil
+	}
 	return a.natsManager.TestConnection(p)
 }
 
-// Connect establishes active connection to a NATS profile and auto-saves credentials to SQLite
+// Connect establishes active connection to a profile and auto-saves credentials to SQLite
 func (a *App) Connect(p storage.ConnectionProfile) (*natsmanager.ServerStatus, error) {
+	if p.Protocol == "kafka" {
+		a.natsManager.Disconnect()
+		ks, err := a.kafkaManager.Connect(p)
+		if err == nil && a.storage != nil {
+			a.activeProto = "kafka"
+			_ = a.storage.SaveConnection(p)
+			_ = a.storage.UpdateLastConnected(p.ID)
+		}
+		if err != nil {
+			return nil, err
+		}
+		status := &natsmanager.ServerStatus{
+			Connected:        ks.Connected,
+			Connecting:       ks.Connecting,
+			Protocol:         "kafka",
+			CurrentProfileID: ks.CurrentProfileID,
+			ClusterID:        ks.ClusterID,
+			ControllerID:     ks.ControllerID,
+			BrokersCount:     ks.BrokersCount,
+			TopicsCount:      ks.TopicsCount,
+			PartitionsCount:  ks.PartitionsCount,
+			RTTMs:            ks.RTTMs,
+			ServerVersion:    "Kafka / Redpanda",
+		}
+		return status, nil
+	}
+
+	a.kafkaManager.Disconnect()
 	status, err := a.natsManager.Connect(p)
 	if err == nil && a.storage != nil {
-		// Auto-save the latest credentials into SQLite
+		a.activeProto = "nats"
 		_ = a.storage.SaveConnection(p)
 		_ = a.storage.UpdateLastConnected(p.ID)
 	}
@@ -81,10 +133,29 @@ func (a *App) Connect(p storage.ConnectionProfile) (*natsmanager.ServerStatus, e
 // Disconnect closes the active connection
 func (a *App) Disconnect() {
 	a.natsManager.Disconnect()
+	a.kafkaManager.Disconnect()
+	a.activeProto = ""
 }
 
 // GetConnectionStatus returns current active connection status
 func (a *App) GetConnectionStatus() natsmanager.ServerStatus {
+	if a.activeProto == "kafka" {
+		ks := a.kafkaManager.GetStatus()
+		return natsmanager.ServerStatus{
+			Connected:        ks.Connected,
+			Connecting:       ks.Connecting,
+			Protocol:         "kafka",
+			LastError:        ks.LastError,
+			CurrentProfileID: ks.CurrentProfileID,
+			ClusterID:        ks.ClusterID,
+			ControllerID:     ks.ControllerID,
+			BrokersCount:     ks.BrokersCount,
+			TopicsCount:      ks.TopicsCount,
+			PartitionsCount:  ks.PartitionsCount,
+			RTTMs:            ks.RTTMs,
+			ServerVersion:    "Kafka / Redpanda",
+		}
+	}
 	return a.natsManager.GetStatus()
 }
 
@@ -247,4 +318,90 @@ func (a *App) PurgeKVEntry(bucket string, key string) error {
 func (a *App) GetKVHistory(bucket string, key string) ([]natsmanager.KVEntryInfo, error) {
 	return a.natsManager.GetKVHistory(a.ctx, bucket, key)
 }
+
+// -------------------------------------------------------------
+// Kafka API Bindings
+// -------------------------------------------------------------
+
+func (a *App) GetKafkaClusterStatus() kafkamanager.KafkaClusterStatus {
+	return a.kafkaManager.GetStatus()
+}
+
+func (a *App) GetKafkaBrokers() ([]kafkamanager.BrokerInfo, error) {
+	return a.kafkaManager.GetBrokers(a.ctx)
+}
+
+func (a *App) GetKafkaBrokerConfigs(nodeID int32) ([]kafkamanager.BrokerConfigEntry, error) {
+	return a.kafkaManager.GetBrokerConfigs(a.ctx, nodeID)
+}
+
+func (a *App) ListKafkaTopics(includeInternal bool) ([]kafkamanager.TopicSummary, error) {
+	return a.kafkaManager.ListTopics(a.ctx, includeInternal)
+}
+
+func (a *App) GetKafkaTopicDetails(topic string) (*kafkamanager.TopicDetailInfo, error) {
+	return a.kafkaManager.GetTopicDetails(a.ctx, topic)
+}
+
+func (a *App) CreateKafkaTopic(params kafkamanager.CreateTopicParams) error {
+	return a.kafkaManager.CreateTopic(a.ctx, params)
+}
+
+func (a *App) DeleteKafkaTopic(topic string) error {
+	return a.kafkaManager.DeleteTopic(a.ctx, topic)
+}
+
+func (a *App) UpdateKafkaTopicPartitions(topic string, newTotal int) error {
+	return a.kafkaManager.UpdateTopicPartitions(a.ctx, topic, newTotal)
+}
+
+func (a *App) UpdateKafkaTopicConfigs(topic string, configs map[string]string) error {
+	return a.kafkaManager.UpdateTopicConfigs(a.ctx, topic, configs)
+}
+
+func (a *App) PurgeKafkaTopic(topic string) error {
+	return a.kafkaManager.PurgeTopicMessages(a.ctx, topic)
+}
+
+func (a *App) PurgeKafkaPartition(topic string, partition int32) error {
+	return a.kafkaManager.PurgePartitionMessages(a.ctx, topic, partition)
+}
+
+func (a *App) DeleteKafkaRecordsUpTo(topic string, partition int32, offset int64) error {
+	return a.kafkaManager.DeleteRecordsUpTo(a.ctx, topic, partition, offset)
+}
+
+func (a *App) ListKafkaConsumerGroups() ([]kafkamanager.ConsumerGroupSummary, error) {
+	return a.kafkaManager.ListConsumerGroups(a.ctx)
+}
+
+func (a *App) GetKafkaConsumerGroupDetails(group string) (*kafkamanager.ConsumerGroupDetailInfo, error) {
+	return a.kafkaManager.GetConsumerGroupDetails(a.ctx, group)
+}
+
+func (a *App) ResetKafkaConsumerGroupOffsets(params kafkamanager.ResetOffsetsParams) error {
+	return a.kafkaManager.ResetConsumerGroupOffsets(a.ctx, params)
+}
+
+func (a *App) DeleteKafkaConsumerGroup(group string) error {
+	return a.kafkaManager.DeleteConsumerGroup(a.ctx, group)
+}
+
+func (a *App) GetKafkaMessages(params kafkamanager.GetKafkaMessagesParams) ([]kafkamanager.KafkaRecord, error) {
+	return a.kafkaManager.GetKafkaMessages(a.ctx, params)
+}
+
+func (a *App) StartKafkaLiveTail(topic string, partitions []int32) error {
+	return a.kafkaManager.StartKafkaLiveTail(topic, partitions)
+}
+
+func (a *App) StopKafkaLiveTail() {
+	a.kafkaManager.StopKafkaLiveTail()
+}
+
+func (a *App) ProduceKafkaRecord(params kafkamanager.ProduceKafkaRecordParams) (*kafkamanager.ProduceRecordResult, error) {
+	return a.kafkaManager.ProduceKafkaRecord(a.ctx, params)
+}
+
+
 

@@ -4,6 +4,10 @@ import { ConnectionView } from './components/ConnectionView';
 import { PubSubView } from './components/pubsub/PubSubView';
 import { JetStreamView } from './components/jetstream/JetStreamView';
 import { KVView } from './components/kv/KVView';
+import { KafkaClusterView } from './components/kafka/KafkaClusterView';
+import { KafkaTopicsView } from './components/kafka/KafkaTopicsView';
+import { KafkaConsumerGroupsView } from './components/kafka/KafkaConsumerGroupsView';
+import { KafkaMessagesView } from './components/kafka/KafkaMessagesView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { storage, natsmanager } from '../wailsjs/go/models';
 import {
@@ -62,14 +66,24 @@ export function App() {
       }
     });
 
+    const cancelKafkaStatus = EventsOn('kafka:status', (data: any) => {
+      const s = new natsmanager.ServerStatus(data);
+      setActiveStatus(s);
+      if (!s.connected) {
+        setActiveTab('connections');
+      }
+    });
+
     return () => {
       if (cancelStatusEvent) cancelStatusEvent();
+      if (cancelKafkaStatus) cancelKafkaStatus();
     };
   }, []);
 
   const handleCreateNew = () => {
     const newProfile = new storage.ConnectionProfile({
       id: crypto.randomUUID(),
+      protocol: 'nats',
       name: 'New Connection',
       url: 'nats://127.0.0.1:4222',
       authType: 'none',
@@ -98,6 +112,13 @@ export function App() {
     try {
       const status = await Connect(p);
       setActiveStatus(status);
+      if (status.connected) {
+        if (p.protocol === 'kafka') {
+          setActiveTab('kafka-cluster');
+        } else {
+          setActiveTab('pubsub');
+        }
+      }
     } catch (err) {
       alert(`Connection failed: ${err}`);
     }
@@ -177,6 +198,22 @@ export function App() {
 
         <div className={`h-full w-full flex flex-col ${activeTab === 'kv' ? '' : 'hidden'}`}>
           <KVView isConnected={activeStatus.connected} isActiveTab={activeTab === 'kv'} />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'kafka-cluster' ? '' : 'hidden'}`}>
+          <KafkaClusterView isConnected={activeStatus.connected} isActiveTab={activeTab === 'kafka-cluster'} />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'kafka-topics' ? '' : 'hidden'}`}>
+          <KafkaTopicsView isConnected={activeStatus.connected} isActiveTab={activeTab === 'kafka-topics'} />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'kafka-groups' ? '' : 'hidden'}`}>
+          <KafkaConsumerGroupsView isConnected={activeStatus.connected} isActiveTab={activeTab === 'kafka-groups'} />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'kafka-messages' ? '' : 'hidden'}`}>
+          <KafkaMessagesView isConnected={activeStatus.connected} isActiveTab={activeTab === 'kafka-messages'} />
         </div>
       </main>
 

@@ -13,7 +13,12 @@ import {
   PowerOff,
   Settings,
   Star,
-  ExternalLink
+  ExternalLink,
+  Zap,
+  Cpu,
+  HardDrive,
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import { storage, natsmanager } from '../../wailsjs/go/models';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
@@ -64,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="font-semibold text-sm tracking-tight text-white flex items-center gap-1.5">
               <span>Streamer</span>
             </div>
-            <div className="text-[10px] text-gray-500 font-mono leading-none">NATS Native UI</div>
+            <div className="text-[10px] text-gray-500 font-mono leading-none">NATS & Kafka GUI</div>
           </div>
         </div>
       </div>
@@ -86,50 +91,104 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </button>
 
-        <button
-          onClick={() => onTabChange('pubsub')}
-          disabled={!activeStatus.connected}
-          className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            !activeStatus.connected
-              ? 'opacity-40 cursor-not-allowed text-gray-500'
-              : activeTab === 'pubsub'
-              ? 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
-              : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
-          }`}
-        >
-          <Radio className="w-3.5 h-3.5" />
-          <span>Pub/Sub Live</span>
-        </button>
+        {activeStatus.connected && activeStatus.protocol === 'kafka' ? (
+          <>
+            <button
+              onClick={() => onTabChange('kafka-cluster')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'kafka-cluster'
+                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5 text-orange-400" />
+              <span>Brokers & Cluster</span>
+            </button>
 
-        <button
-          onClick={() => onTabChange('jetstream')}
-          disabled={!activeStatus.connected || !activeStatus.jetStream}
-          className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            !activeStatus.connected || !activeStatus.jetStream
-              ? 'opacity-40 cursor-not-allowed text-gray-500'
-              : activeTab === 'jetstream'
-              ? 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
-              : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span>JetStream</span>
-        </button>
+            <button
+              onClick={() => onTabChange('kafka-topics')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'kafka-topics'
+                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <HardDrive className="w-3.5 h-3.5 text-orange-400" />
+              <span>Topics</span>
+            </button>
 
-        <button
-          onClick={() => onTabChange('kv')}
-          disabled={!activeStatus.connected || !activeStatus.jetStream}
-          className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            !activeStatus.connected || !activeStatus.jetStream
-              ? 'opacity-40 cursor-not-allowed text-gray-500'
-              : activeTab === 'kv'
-              ? 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
-              : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
-          }`}
-        >
-          <KeyRound className="w-3.5 h-3.5" />
-          <span>KV Store</span>
-        </button>
+            <button
+              onClick={() => onTabChange('kafka-groups')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'kafka-groups'
+                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-orange-400" />
+              <span>Consumer Groups</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('kafka-messages')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'kafka-messages'
+                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-orange-400" />
+              <span>Messages</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => onTabChange('pubsub')}
+              disabled={!activeStatus.connected}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                !activeStatus.connected
+                  ? 'opacity-40 cursor-not-allowed text-gray-500'
+                  : activeTab === 'pubsub'
+                  ? 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>Pub/Sub Live</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('jetstream')}
+              disabled={!activeStatus.connected || !activeStatus.jetStream}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                !activeStatus.connected || !activeStatus.jetStream
+                  ? 'opacity-40 cursor-not-allowed text-gray-500'
+                  : activeTab === 'jetstream'
+                  ? 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>JetStream</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('kv')}
+              disabled={!activeStatus.connected || !activeStatus.jetStream}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                !activeStatus.connected || !activeStatus.jetStream
+                  ? 'opacity-40 cursor-not-allowed text-gray-500'
+                  : activeTab === 'kv'
+                  ? 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>KV Store</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Saved Profiles Section */}
@@ -155,6 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               const isSelected = selectedId === p.id;
               const isActive = activeStatus.connected && activeProfileId === p.id;
               const isConnecting = activeStatus.connecting && activeProfileId === p.id;
+              const isKafka = p.protocol === 'kafka';
 
               return (
                 <div
@@ -162,12 +222,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => onSelect(p.id)}
                   className={`group px-2.5 py-2 rounded-lg cursor-pointer text-left transition-all border ${
                     isSelected
-                      ? 'bg-[#151c27] border-blue-500/30 text-white shadow-sm'
+                      ? isKafka
+                        ? 'bg-[#191512] border-orange-500/40 text-white shadow-sm'
+                        : 'bg-[#151c27] border-blue-500/30 text-white shadow-sm'
                       : 'border-transparent text-gray-300 hover:bg-[#111720] hover:text-white'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-medium truncate">{p.name || 'Untitled'}</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {isKafka ? (
+                        <Layers className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                      ) : (
+                        <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      )}
+                      <span className="text-xs font-medium truncate">{p.name || 'Untitled'}</span>
+                    </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {isActive ? (
                         <button
@@ -187,7 +256,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             onConnect(p);
                           }}
                           title="Connect"
-                          className="p-1 rounded hover:bg-blue-500/20 text-gray-400 hover:text-blue-400 transition-colors"
+                          className={`p-1 rounded transition-colors ${
+                            isKafka
+                              ? 'hover:bg-orange-500/20 text-gray-400 hover:text-orange-400'
+                              : 'hover:bg-blue-500/20 text-gray-400 hover:text-blue-400'
+                          }`}
                         >
                           <Play className="w-3 h-3 fill-current" />
                         </button>
@@ -197,7 +270,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div className="text-[11px] text-gray-500 truncate font-mono mt-0.5">
                     {p.url}
                   </div>
-                  <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500">
+                  <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-500">
+                    {isKafka ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-orange-500/15 text-orange-400 text-[9px] font-semibold border border-orange-500/25">
+                        <Layers className="w-2.5 h-2.5" />
+                        KAFKA
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-400 text-[9px] font-semibold border border-cyan-500/25">
+                        <Zap className="w-2.5 h-2.5" />
+                        NATS
+                      </span>
+                    )}
                     <span className="uppercase px-1 py-0.2 rounded bg-[#1c2330] text-[9px] font-medium text-gray-400">
                       {p.authType}
                     </span>
