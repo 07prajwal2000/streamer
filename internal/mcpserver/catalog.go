@@ -8,6 +8,7 @@ import (
 
 	"streamer/internal/kafkamanager"
 	"streamer/internal/natsmanager"
+	"streamer/internal/rabbitmqmanager"
 	"streamer/internal/sqsmanager"
 )
 
@@ -721,6 +722,284 @@ func DefaultActionCatalog() []ActionDefinition {
 					SourceQueueURL: dlqURL,
 					TargetQueueURL: srcURL,
 					MaxMessages:    int(maxMsgs),
+				})
+			},
+		},
+
+		// -------------------------------------------------------------
+		// RabbitMQ / AMQP Actions
+		// -------------------------------------------------------------
+		{
+			Action:      "rabbitmq.get_overview",
+			Namespace:   "rabbitmq",
+			Description: "Get cluster-wide RabbitMQ metrics, Erlang version, queue/exchange totals, and message rates",
+			ReadOnly:    true,
+			Parameters:  []ActionParam{},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				return b.GetRabbitMQOverview()
+			},
+		},
+		{
+			Action:      "rabbitmq.list_nodes",
+			Namespace:   "rabbitmq",
+			Description: "List all RabbitMQ cluster nodes with memory, disk free, file descriptors, and alarm states",
+			ReadOnly:    true,
+			Parameters:  []ActionParam{},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				return b.ListRabbitMQNodes()
+			},
+		},
+		{
+			Action:      "rabbitmq.list_vhosts",
+			Namespace:   "rabbitmq",
+			Description: "List all virtual hosts in the RabbitMQ cluster with message totals and rates",
+			ReadOnly:    true,
+			Parameters:  []ActionParam{},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				return b.ListRabbitMQVHosts()
+			},
+		},
+		{
+			Action:      "rabbitmq.list_queues",
+			Namespace:   "rabbitmq",
+			Description: "List all queues in a virtual host with message counts, consumers, and queue type",
+			ReadOnly:    true,
+			Parameters: []ActionParam{
+				{Name: "vhost", Type: "string", Description: "Virtual host name (default '/' or active vhost)", Required: false, Default: "/"},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				vhost := extractFirstString(params, "vhost", "virtual_host")
+				return b.ListRabbitMQQueues(vhost)
+			},
+		},
+		{
+			Action:      "rabbitmq.get_queue_details",
+			Namespace:   "rabbitmq",
+			Description: "Get detailed attributes, consumer list, and bindings for a specific RabbitMQ queue",
+			ReadOnly:    true,
+			Parameters: []ActionParam{
+				{Name: "queue", Type: "string", Description: "The queue name", Required: true},
+				{Name: "vhost", Type: "string", Description: "Virtual host name (default '/')", Required: false, Default: "/"},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				queue := extractFirstString(params, "queue", "queue_name", "name")
+				if queue == "" {
+					return nil, fmt.Errorf("queue name is required")
+				}
+				vhost := extractFirstString(params, "vhost", "virtual_host")
+				return b.GetRabbitMQQueueDetails(vhost, queue)
+			},
+		},
+		{
+			Action:      "rabbitmq.create_queue",
+			Namespace:   "rabbitmq",
+			Description: "Create a new RabbitMQ queue (classic, quorum, or stream) with optional TTL, Max-Length, or DLX",
+			ReadOnly:    false,
+			Parameters: []ActionParam{
+				{Name: "name", Type: "string", Description: "The queue name", Required: true},
+				{Name: "vhost", Type: "string", Description: "Virtual host (default '/')", Required: false, Default: "/"},
+				{Name: "type", Type: "string", Description: "Queue type: 'classic', 'quorum', or 'stream'", Required: false, Default: "classic"},
+				{Name: "durable", Type: "boolean", Description: "Whether queue survives broker restarts (required true for quorum)", Required: false, Default: true},
+				{Name: "auto_delete", Type: "boolean", Description: "Whether queue is deleted when last consumer unsubscribes", Required: false, Default: false},
+				{Name: "message_ttl", Type: "integer", Description: "Per-queue message TTL in milliseconds (x-message-ttl)", Required: false},
+				{Name: "dead_letter_exchange", Type: "string", Description: "Target DLX exchange (x-dead-letter-exchange)", Required: false},
+				{Name: "dead_letter_routing_key", Type: "string", Description: "Target DLX routing key (x-dead-letter-routing-key)", Required: false},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				name := extractFirstString(params, "name", "queue", "queue_name")
+				if name == "" {
+					return nil, fmt.Errorf("queue name is required")
+				}
+				return b.CreateRabbitMQQueue(rabbitmqmanager.CreateQueueParams{
+					Name:                 name,
+					VHost:                extractFirstString(params, "vhost", "virtual_host"),
+					Type:                 extractFirstString(params, "type", "queue_type"),
+					Durable:              getBool(params, "durable", true),
+					AutoDelete:           getBool(params, "auto_delete", false),
+					MessageTTL:           getInt64(params, "message_ttl", 0),
+					DeadLetterExchange:   extractFirstString(params, "dead_letter_exchange", "dlx"),
+					DeadLetterRoutingKey: extractFirstString(params, "dead_letter_routing_key", "dlx_key"),
+				})
+			},
+		},
+		{
+			Action:      "rabbitmq.list_exchanges",
+			Namespace:   "rabbitmq",
+			Description: "List all exchanges in a virtual host with type (direct, fanout, topic, headers) and durability",
+			ReadOnly:    true,
+			Parameters: []ActionParam{
+				{Name: "vhost", Type: "string", Description: "Virtual host (default '/')", Required: false, Default: "/"},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				vhost := extractFirstString(params, "vhost", "virtual_host")
+				return b.ListRabbitMQExchanges(vhost)
+			},
+		},
+		{
+			Action:      "rabbitmq.get_exchange_details",
+			Namespace:   "rabbitmq",
+			Description: "Get detailed attributes and bindings for an exchange",
+			ReadOnly:    true,
+			Parameters: []ActionParam{
+				{Name: "exchange", Type: "string", Description: "Exchange name", Required: true},
+				{Name: "vhost", Type: "string", Description: "Virtual host (default '/')", Required: false, Default: "/"},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				exchange := extractFirstString(params, "exchange", "exchange_name", "name")
+				vhost := extractFirstString(params, "vhost", "virtual_host")
+				return b.GetRabbitMQExchangeDetails(vhost, exchange)
+			},
+		},
+		{
+			Action:      "rabbitmq.create_exchange",
+			Namespace:   "rabbitmq",
+			Description: "Create a new exchange (direct, fanout, topic, or headers)",
+			ReadOnly:    false,
+			Parameters: []ActionParam{
+				{Name: "name", Type: "string", Description: "Exchange name", Required: true},
+				{Name: "type", Type: "string", Description: "Type: 'direct', 'fanout', 'topic', or 'headers'", Required: false, Default: "direct"},
+				{Name: "vhost", Type: "string", Description: "Virtual host (default '/')", Required: false, Default: "/"},
+				{Name: "durable", Type: "boolean", Description: "Whether exchange survives broker restarts", Required: false, Default: true},
+				{Name: "auto_delete", Type: "boolean", Description: "Whether exchange auto-deletes when all queues unbind", Required: false, Default: false},
+				{Name: "internal", Type: "boolean", Description: "Whether exchange can only be published to by other exchanges", Required: false, Default: false},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				name := extractFirstString(params, "name", "exchange", "exchange_name")
+				if name == "" {
+					return nil, fmt.Errorf("exchange name is required")
+				}
+				return b.CreateRabbitMQExchange(rabbitmqmanager.CreateExchangeParams{
+					Name:       name,
+					VHost:      extractFirstString(params, "vhost", "virtual_host"),
+					Type:       extractFirstString(params, "type", "exchange_type"),
+					Durable:    getBool(params, "durable", true),
+					AutoDelete: getBool(params, "auto_delete", false),
+					Internal:   getBool(params, "internal", false),
+				})
+			},
+		},
+		{
+			Action:      "rabbitmq.list_bindings",
+			Namespace:   "rabbitmq",
+			Description: "List all exchange-to-queue and exchange-to-exchange bindings in a virtual host",
+			ReadOnly:    true,
+			Parameters: []ActionParam{
+				{Name: "vhost", Type: "string", Description: "Virtual host (default '/')", Required: false, Default: "/"},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				vhost := extractFirstString(params, "vhost", "virtual_host")
+				return b.ListRabbitMQBindings(vhost)
+			},
+		},
+		{
+			Action:      "rabbitmq.create_binding",
+			Namespace:   "rabbitmq",
+			Description: "Bind an exchange to a destination queue or exchange with a routing key",
+			ReadOnly:    false,
+			Parameters: []ActionParam{
+				{Name: "source", Type: "string", Description: "Source exchange name", Required: true},
+				{Name: "destination", Type: "string", Description: "Destination queue or exchange name", Required: true},
+				{Name: "destination_type", Type: "string", Description: "Destination type: 'queue' or 'exchange'", Required: false, Default: "queue"},
+				{Name: "routing_key", Type: "string", Description: "Routing key / binding key pattern (e.g. 'orders.*')", Required: false, Default: ""},
+				{Name: "vhost", Type: "string", Description: "Virtual host (default '/')", Required: false, Default: "/"},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				source := extractFirstString(params, "source", "source_exchange", "exchange")
+				dest := extractFirstString(params, "destination", "destination_name", "target", "queue")
+				if source == "" || dest == "" {
+					return nil, fmt.Errorf("source exchange and destination are required")
+				}
+				err := b.CreateRabbitMQBinding(rabbitmqmanager.CreateBindingParams{
+					Source:          source,
+					Destination:     dest,
+					DestinationType: extractFirstString(params, "destination_type", "type"),
+					RoutingKey:      extractFirstString(params, "routing_key", "key"),
+					VHost:           extractFirstString(params, "vhost", "virtual_host"),
+				})
+				if err != nil {
+					return nil, err
+				}
+				return map[string]any{"success": true, "source": source, "destination": dest}, nil
+			},
+		},
+		{
+			Action:      "rabbitmq.publish_message",
+			Namespace:   "rabbitmq",
+			Description: "Publish a message to an exchange with routing key, delivery mode, headers, and publisher confirms",
+			ReadOnly:    false,
+			Parameters: []ActionParam{
+				{Name: "exchange", Type: "string", Description: "Exchange name (empty string for default direct exchange)", Required: false, Default: ""},
+				{Name: "routing_key", Type: "string", Description: "Routing key or target queue name", Required: true},
+				{Name: "payload", Type: "string", Description: "Message payload (string, JSON, or object)", Required: true},
+				{Name: "content_type", Type: "string", Description: "MIME Content-Type (e.g. 'application/json')", Required: false, Default: "application/json"},
+				{Name: "delivery_mode", Type: "integer", Description: "1 for non-persistent, 2 for persistent", Required: false, Default: 2},
+				{Name: "wait_for_confirm", Type: "boolean", Description: "Wait for broker ACK confirmation before returning", Required: false, Default: true},
+				{Name: "vhost", Type: "string", Description: "Virtual host (default '/')", Required: false, Default: "/"},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				payload := extractPayload(params)
+				if payload == "" {
+					return nil, fmt.Errorf("message payload is required")
+				}
+				routingKey := extractFirstString(params, "routing_key", "key", "queue")
+				return b.PublishRabbitMQMessage(rabbitmqmanager.PublishRMQMessageParams{
+					Exchange:       extractFirstString(params, "exchange", "exchange_name"),
+					RoutingKey:     routingKey,
+					Payload:        payload,
+					ContentType:    extractFirstString(params, "content_type"),
+					DeliveryMode:   uint8(getInt(params, "delivery_mode", 2)),
+					WaitForConfirm: getBool(params, "wait_for_confirm", true),
+					VHost:          extractFirstString(params, "vhost", "virtual_host"),
+				})
+			},
+		},
+		{
+			Action:      "rabbitmq.peek_messages",
+			Namespace:   "rabbitmq",
+			Description: "Non-destructively peek/inspect messages from a RabbitMQ queue without consuming them",
+			ReadOnly:    true,
+			Parameters: []ActionParam{
+				{Name: "queue", Type: "string", Description: "Queue name to inspect", Required: true},
+				{Name: "count", Type: "integer", Description: "Number of messages to peek (default 10, max 100)", Required: false, Default: 10},
+				{Name: "vhost", Type: "string", Description: "Virtual host (default '/')", Required: false, Default: "/"},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				queue := extractFirstString(params, "queue", "queue_name")
+				if queue == "" {
+					return nil, fmt.Errorf("queue name is required")
+				}
+				count := getInt(params, "count", 10)
+				return b.PeekRabbitMQMessages(rabbitmqmanager.PeekRMQMessagesParams{
+					QueueName: queue,
+					Count:     count,
+					AckMode:   "ack_requeue_true",
+					VHost:     extractFirstString(params, "vhost", "virtual_host"),
+				})
+			},
+		},
+		{
+			Action:      "rabbitmq.redrive_dlq",
+			Namespace:   "rabbitmq",
+			Description: "Safely redrive dead-letter messages from a DLQ back to their original target destination",
+			ReadOnly:    false,
+			Parameters: []ActionParam{
+				{Name: "source_queue", Type: "string", Description: "Dead letter queue name to drain from", Required: true},
+				{Name: "target_exchange", Type: "string", Description: "Target exchange (optional: extracted from x-death header)", Required: false},
+				{Name: "target_routing_key", Type: "string", Description: "Target routing key (optional: extracted from x-death header)", Required: false},
+				{Name: "max_messages", Type: "integer", Description: "Maximum messages to redrive (default 50)", Required: false, Default: 50},
+				{Name: "vhost", Type: "string", Description: "Virtual host (default '/')", Required: false, Default: "/"},
+			},
+			Handler: func(ctx context.Context, b StreamerBackend, params map[string]any) (any, error) {
+				srcQueue := extractFirstString(params, "source_queue", "source", "dlq")
+				if srcQueue == "" {
+					return nil, fmt.Errorf("source_queue is required")
+				}
+				return b.RedriveRabbitMQDLQ(rabbitmqmanager.RedriveDLQParams{
+					SourceQueue:      srcQueue,
+					TargetExchange:   extractFirstString(params, "target_exchange", "exchange"),
+					TargetRoutingKey: extractFirstString(params, "target_routing_key", "routing_key"),
+					MaxMessages:      getInt(params, "max_messages", 50),
+					VHost:            extractFirstString(params, "vhost", "virtual_host"),
 				})
 			},
 		},

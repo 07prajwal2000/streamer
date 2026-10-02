@@ -11,6 +11,10 @@ import { KafkaConsumerGroupsView } from './components/kafka/KafkaConsumerGroupsV
 import { KafkaMessagesView } from './components/kafka/KafkaMessagesView';
 import { SQSQueuesView } from './components/sqs/SQSQueuesView';
 import { SQSMessagesView } from './components/sqs/SQSMessagesView';
+import { RabbitMQOverviewView } from './components/rabbitmq/RabbitMQOverviewView';
+import { RabbitMQQueuesView } from './components/rabbitmq/RabbitMQQueuesView';
+import { RabbitMQExchangesView } from './components/rabbitmq/RabbitMQExchangesView';
+import { RabbitMQMessagesView } from './components/rabbitmq/RabbitMQMessagesView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { storage, natsmanager } from '../wailsjs/go/models';
 import {
@@ -32,6 +36,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<string>('connections');
   const [showSettings, setShowSettings] = useState(false);
   const [selectedSqsQueueUrl, setSelectedSqsQueueUrl] = useState<string | null>(null);
+  const [selectedRmqQueue, setSelectedRmqQueue] = useState<string | null>(null);
   const [activeStatus, setActiveStatus] = useState<natsmanager.ServerStatus>(
     new natsmanager.ServerStatus({ connected: false, rttMs: 0 })
   );
@@ -64,32 +69,61 @@ export function App() {
     // Listen to real-time events emitted from Go
     const cancelStatusEvent = EventsOn('nats:status', (data: any) => {
       const s = new natsmanager.ServerStatus(data);
-      setActiveStatus(s);
-      if (!s.connected) {
-        setActiveTab('connections');
-      }
+      setActiveStatus((prev) => {
+        if (prev.protocol && prev.protocol !== 'nats' && prev.connected) {
+          return prev;
+        }
+        if (!s.connected && prev.protocol === 'nats') {
+          setActiveTab('connections');
+        }
+        return s;
+      });
     });
 
     const cancelKafkaStatus = EventsOn('kafka:status', (data: any) => {
       const s = new natsmanager.ServerStatus(data);
-      setActiveStatus(s);
-      if (!s.connected) {
-        setActiveTab('connections');
-      }
+      setActiveStatus((prev) => {
+        if (prev.protocol && prev.protocol !== 'kafka' && prev.connected) {
+          return prev;
+        }
+        if (!s.connected && prev.protocol === 'kafka') {
+          setActiveTab('connections');
+        }
+        return s;
+      });
     });
 
     const cancelSQSStatus = EventsOn('sqs:status', (data: any) => {
       const s = new natsmanager.ServerStatus(data);
-      setActiveStatus(s);
-      if (!s.connected) {
-        setActiveTab('connections');
-      }
+      setActiveStatus((prev) => {
+        if (prev.protocol && prev.protocol !== 'sqs' && prev.connected) {
+          return prev;
+        }
+        if (!s.connected && prev.protocol === 'sqs') {
+          setActiveTab('connections');
+        }
+        return s;
+      });
+    });
+
+    const cancelRabbitMQStatus = EventsOn('rabbitmq:status', (data: any) => {
+      const s = new natsmanager.ServerStatus(data);
+      setActiveStatus((prev) => {
+        if (prev.protocol && prev.protocol !== 'rabbitmq' && prev.connected) {
+          return prev;
+        }
+        if (!s.connected && prev.protocol === 'rabbitmq') {
+          setActiveTab('connections');
+        }
+        return s;
+      });
     });
 
     return () => {
       if (cancelStatusEvent) cancelStatusEvent();
       if (cancelKafkaStatus) cancelKafkaStatus();
       if (cancelSQSStatus) cancelSQSStatus();
+      if (cancelRabbitMQStatus) cancelRabbitMQStatus();
     };
   }, []);
 
@@ -130,6 +164,8 @@ export function App() {
           setActiveTab('kafka-cluster');
         } else if (p.protocol === 'sqs') {
           setActiveTab('sqs-queues');
+        } else if (p.protocol === 'rabbitmq') {
+          setActiveTab('rabbitmq-overview');
         } else {
           setActiveTab('pubsub');
         }
@@ -248,6 +284,43 @@ export function App() {
             isActiveTab={activeTab === 'sqs-messages'}
             initialQueueUrl={selectedSqsQueueUrl}
             onClearInitialQueue={() => setSelectedSqsQueueUrl(null)}
+          />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'rabbitmq-overview' ? '' : 'hidden'}`}>
+          <RabbitMQOverviewView
+            isConnected={activeStatus.connected && activeStatus.protocol === 'rabbitmq'}
+            isActiveTab={activeTab === 'rabbitmq-overview'}
+          />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'rabbitmq-queues' ? '' : 'hidden'}`}>
+          <RabbitMQQueuesView
+            isConnected={activeStatus.connected && activeStatus.protocol === 'rabbitmq'}
+            isActiveTab={activeTab === 'rabbitmq-queues'}
+            onNavigateToMessages={(queueName) => {
+              setSelectedRmqQueue(queueName);
+              setActiveTab('rabbitmq-messages');
+            }}
+          />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'rabbitmq-exchanges' ? '' : 'hidden'}`}>
+          <RabbitMQExchangesView
+            isConnected={activeStatus.connected && activeStatus.protocol === 'rabbitmq'}
+            isActiveTab={activeTab === 'rabbitmq-exchanges'}
+            onNavigateToPublish={() => {
+              setActiveTab('rabbitmq-messages');
+            }}
+          />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'rabbitmq-messages' ? '' : 'hidden'}`}>
+          <RabbitMQMessagesView
+            isConnected={activeStatus.connected && activeStatus.protocol === 'rabbitmq'}
+            isActiveTab={activeTab === 'rabbitmq-messages'}
+            initialQueue={selectedRmqQueue}
+            onClearInitialQueue={() => setSelectedRmqQueue(null)}
           />
         </div>
       </main>

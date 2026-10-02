@@ -11,6 +11,7 @@ import (
 
 	"streamer/internal/kafkamanager"
 	"streamer/internal/natsmanager"
+	"streamer/internal/rabbitmqmanager"
 	"streamer/internal/sqsmanager"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -156,6 +157,62 @@ func (m *mockBackend) UpdateSQSQueueAttributes(queueURL string, attributes map[s
 
 func (m *mockBackend) RedriveDLQ(params sqsmanager.RedriveDLQParams) (*sqsmanager.RedriveDLQResult, error) {
 	return &sqsmanager.RedriveDLQResult{MessagesMoved: 5}, nil
+}
+
+func (m *mockBackend) GetRabbitMQOverview() (*rabbitmqmanager.RMQOverview, error) {
+	return &rabbitmqmanager.RMQOverview{ClusterName: "rabbit@cluster", RabbitMQVersion: "3.12.0"}, nil
+}
+
+func (m *mockBackend) ListRabbitMQNodes() ([]rabbitmqmanager.RMQNodeInfo, error) {
+	return []rabbitmqmanager.RMQNodeInfo{{Name: "rabbit@node-1", Running: true}}, nil
+}
+
+func (m *mockBackend) ListRabbitMQVHosts() ([]rabbitmqmanager.RMQVHostInfo, error) {
+	return []rabbitmqmanager.RMQVHostInfo{{Name: "/"}}, nil
+}
+
+func (m *mockBackend) ListRabbitMQQueues(vhost string) ([]rabbitmqmanager.RMQQueueSummary, error) {
+	return []rabbitmqmanager.RMQQueueSummary{{Name: "test.queue", VHost: "/"}}, nil
+}
+
+func (m *mockBackend) GetRabbitMQQueueDetails(vhost string, queue string) (*rabbitmqmanager.RMQQueueDetail, error) {
+	return &rabbitmqmanager.RMQQueueDetail{RMQQueueSummary: rabbitmqmanager.RMQQueueSummary{Name: queue, VHost: "/"}}, nil
+}
+
+func (m *mockBackend) CreateRabbitMQQueue(params rabbitmqmanager.CreateQueueParams) (*rabbitmqmanager.RMQQueueSummary, error) {
+	return &rabbitmqmanager.RMQQueueSummary{Name: params.Name, VHost: params.VHost}, nil
+}
+
+func (m *mockBackend) ListRabbitMQExchanges(vhost string) ([]rabbitmqmanager.RMQExchangeSummary, error) {
+	return []rabbitmqmanager.RMQExchangeSummary{{Name: "amq.direct", VHost: "/"}}, nil
+}
+
+func (m *mockBackend) GetRabbitMQExchangeDetails(vhost string, exchange string) (*rabbitmqmanager.RMQExchangeDetail, error) {
+	return &rabbitmqmanager.RMQExchangeDetail{RMQExchangeSummary: rabbitmqmanager.RMQExchangeSummary{Name: exchange, VHost: "/"}}, nil
+}
+
+func (m *mockBackend) CreateRabbitMQExchange(params rabbitmqmanager.CreateExchangeParams) (*rabbitmqmanager.RMQExchangeSummary, error) {
+	return &rabbitmqmanager.RMQExchangeSummary{Name: params.Name, VHost: params.VHost}, nil
+}
+
+func (m *mockBackend) ListRabbitMQBindings(vhost string) ([]rabbitmqmanager.RMQBindingInfo, error) {
+	return []rabbitmqmanager.RMQBindingInfo{{Source: "amq.direct", Destination: "test.queue", RoutingKey: "test"}}, nil
+}
+
+func (m *mockBackend) CreateRabbitMQBinding(params rabbitmqmanager.CreateBindingParams) error {
+	return nil
+}
+
+func (m *mockBackend) PublishRabbitMQMessage(params rabbitmqmanager.PublishRMQMessageParams) (*rabbitmqmanager.PublishRMQMessageResult, error) {
+	return &rabbitmqmanager.PublishRMQMessageResult{Success: true, Confirmed: true, MessageID: "msg-1"}, nil
+}
+
+func (m *mockBackend) PeekRabbitMQMessages(params rabbitmqmanager.PeekRMQMessagesParams) ([]rabbitmqmanager.RMQMessage, error) {
+	return []rabbitmqmanager.RMQMessage{{Payload: "test-payload", QueueName: params.QueueName}}, nil
+}
+
+func (m *mockBackend) RedriveRabbitMQDLQ(params rabbitmqmanager.RedriveDLQParams) (*rabbitmqmanager.RedriveDLQResult, error) {
+	return &rabbitmqmanager.RedriveDLQResult{MovedCount: 5}, nil
 }
 
 func getFreePort(t *testing.T) int {

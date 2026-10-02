@@ -16,7 +16,8 @@ import {
   Cpu,
   Radio,
   Clock,
-  Inbox
+  Inbox,
+  Boxes
 } from 'lucide-react';
 import { storage, natsmanager } from '../../wailsjs/go/models';
 import { SelectFile } from '../../wailsjs/go/main/App';
@@ -78,7 +79,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
       const res = await onTest(form);
       setTestResult({
         ok: true,
-        msg: `Connected to ${res.serverVersion || (isSQS ? 'SQS (' + (form.awsRegion || 'us-east-1') + ')' : 'NATS')} (RTT: ${res.rttMs.toFixed(1)}ms)`,
+        msg: `Connected to ${res.serverVersion || (isSQS ? 'SQS (' + (form.awsRegion || 'us-east-1') + ')' : isRabbitMQ ? 'RabbitMQ' : 'NATS')} (RTT: ${res.rttMs.toFixed(1)}ms)`,
       });
     } catch (err: any) {
       setTestResult({
@@ -103,6 +104,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
 
   const isKafka = form.protocol === 'kafka';
   const isSQS = form.protocol === 'sqs';
+  const isRabbitMQ = form.protocol === 'rabbitmq';
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0d1117] overflow-y-auto">
@@ -120,6 +122,11 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
                 <Inbox className="w-3 h-3 text-amber-400" />
                 Amazon SQS / LocalStack
+              </span>
+            ) : isRabbitMQ ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                <Boxes className="w-3 h-3 text-rose-400" />
+                RabbitMQ / AMQP
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
@@ -284,6 +291,44 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   </div>
                 </div>
               </>
+            ) : isRabbitMQ ? (
+              <>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Boxes className="w-3 h-3 text-rose-400" /> Cluster
+                  </span>
+                  <div className="text-xs font-mono font-medium text-gray-200 truncate" title={activeStatus.clusterId || 'RabbitMQ Cluster'}>
+                    {activeStatus.clusterId || 'RabbitMQ Cluster'}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Server className="w-3 h-3 text-rose-400" /> Version
+                  </span>
+                  <div className="text-xs font-mono font-medium text-rose-400">
+                    {activeStatus.serverVersion || 'RabbitMQ AMQP'}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Activity className="w-3 h-3 text-emerald-400" /> RTT Latency
+                  </span>
+                  <div className="text-xs font-mono font-medium text-emerald-400">
+                    {activeStatus.rttMs.toFixed(2)} ms
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-blue-400" /> Queues
+                  </span>
+                  <div className="text-xs font-mono text-gray-300">
+                    {activeStatus.topicsCount || 0} Available
+                  </div>
+                </div>
+              </>
             ) : (
               <>
                 <div className="space-y-1">
@@ -370,12 +415,12 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
             {/* Protocol Selector */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-gray-300">Streaming Engine / Protocol</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 <button
                   type="button"
                   onClick={() => {
                     updateField('protocol', 'nats');
-                    if (!form.url || form.url.includes('9092') || form.url.includes('4566')) {
+                    if (!form.url || form.url.includes('9092') || form.url.includes('4566') || form.url.includes('5672')) {
                       updateField('url', 'nats://127.0.0.1:4222');
                     }
                     if (form.authType === 'scram256' || form.authType === 'scram512') {
@@ -395,7 +440,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   </div>
                   <div>
                     <div className="font-semibold text-xs text-white">NATS Core & JetStream</div>
-                    <div className="text-[10px] text-gray-400">High-performance pub/sub, streams & KV</div>
+                    <div className="text-[10px] text-gray-400">Pub/sub, streams & KV</div>
                   </div>
                 </button>
 
@@ -403,7 +448,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   type="button"
                   onClick={() => {
                     updateField('protocol', 'kafka');
-                    if (!form.url || form.url.includes('4222') || form.url.includes('4566')) {
+                    if (!form.url || form.url.includes('4222') || form.url.includes('4566') || form.url.includes('5672')) {
                       updateField('url', '127.0.0.1:9092');
                     }
                     if (form.authType === 'token' || form.authType === 'credentials' || form.authType === 'nkey') {
@@ -422,8 +467,8 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                     <Layers className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="font-semibold text-xs text-white">Apache Kafka / Redpanda</div>
-                    <div className="text-[10px] text-gray-400">Distributed log, partitions & consumer groups</div>
+                    <div className="font-semibold text-xs text-white">Apache Kafka</div>
+                    <div className="text-[10px] text-gray-400">Partitions & consumer groups</div>
                   </div>
                 </button>
 
@@ -431,7 +476,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   type="button"
                   onClick={() => {
                     updateField('protocol', 'sqs');
-                    if (!form.url || form.url.includes('4222') || form.url.includes('9092')) {
+                    if (!form.url || form.url.includes('4222') || form.url.includes('9092') || form.url.includes('5672')) {
                       updateField('url', 'http://localhost:4566');
                     }
                     if (!form.awsRegion) {
@@ -453,8 +498,42 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                     <Inbox className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="font-semibold text-xs text-white">Amazon SQS / LocalStack</div>
-                    <div className="text-[10px] text-gray-400">AWS Cloud, LocalStack, ElasticMQ</div>
+                    <div className="font-semibold text-xs text-white">Amazon SQS</div>
+                    <div className="text-[10px] text-gray-400">AWS Cloud & LocalStack</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateField('protocol', 'rabbitmq');
+                    if (!form.url || form.url.includes('4222') || form.url.includes('9092') || form.url.includes('4566')) {
+                      updateField('url', 'amqp://guest:guest@localhost:5672/');
+                    }
+                    if (!form.managementUrl) {
+                      updateField('managementUrl', 'http://localhost:15672');
+                    }
+                    if (!form.vhost) {
+                      updateField('vhost', '/');
+                    }
+                    if (form.authType !== 'none' && form.authType !== 'userpass') {
+                      updateField('authType', 'userpass');
+                    }
+                  }}
+                  className={`p-3 rounded-xl border flex items-center gap-3 text-left transition-all ${
+                    isRabbitMQ
+                      ? 'bg-rose-500/10 border-rose-500/30 text-white shadow-sm'
+                      : 'bg-[#131923] border-[#232c3d] text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    isRabbitMQ ? 'bg-rose-500/20 text-rose-400' : 'bg-[#1b2330] text-gray-400'
+                  }`}>
+                    <Boxes className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-xs text-white">RabbitMQ / AMQP</div>
+                    <div className="text-[10px] text-gray-400">Broker & Management API</div>
                   </div>
                 </button>
               </div>
@@ -467,14 +546,14 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   type="text"
                   value={form.name}
                   onChange={(e) => updateField('name', e.target.value)}
-                  placeholder={isKafka ? "e.g. Local Dev Kafka" : isSQS ? "e.g. LocalStack SQS or Prod SQS" : "e.g. Local Dev NATS"}
+                  placeholder={isKafka ? "e.g. Local Dev Kafka" : isSQS ? "e.g. LocalStack SQS or Prod SQS" : isRabbitMQ ? "e.g. Local Dev RabbitMQ" : "e.g. Local Dev NATS"}
                   className="w-full bg-[#131923] border border-[#232c3d] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none transition-colors"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-300">
-                  {isKafka ? 'Client ID (client.id)' : isSQS ? 'Profile Label' : 'Client Name'}
+                  {isKafka ? 'Client ID (client.id)' : isSQS ? 'Profile Label' : isRabbitMQ ? 'Connection Label' : 'Client Name'}
                 </label>
                 <input
                   type="text"
@@ -485,8 +564,95 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                 />
               </div>
             </div>
+            {isRabbitMQ ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-300">
+                      AMQP Connection URL
+                    </label>
+                    <input
+                      type="text"
+                      value={form.url || ''}
+                      onChange={(e) => updateField('url', e.target.value)}
+                      placeholder="amqp://guest:guest@localhost:5672/ or amqps://..."
+                      className="w-full bg-[#131923] border border-[#232c3d] focus:border-rose-500 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none transition-colors"
+                    />
+                    <p className="text-[11px] text-gray-500">
+                      Primary wire protocol URL (default port 5672, or 5671 for TLS).
+                    </p>
+                  </div>
 
-            {isSQS ? (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-300 flex items-center justify-between">
+                      <span>Management HTTP URL</span>
+                      <span className="text-[10px] text-rose-400/80">Plugin port 15672</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.managementUrl || ''}
+                      onChange={(e) => updateField('managementUrl', e.target.value)}
+                      placeholder="http://localhost:15672"
+                      className="w-full bg-[#131923] border border-[#232c3d] focus:border-rose-500 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none transition-colors"
+                    />
+                    <p className="text-[11px] text-gray-500">
+                      Required for cluster overview, node telemetry, and queue/exchange enumeration.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-300">
+                      Virtual Host (VHost)
+                    </label>
+                    <input
+                      type="text"
+                      value={form.vhost || '/'}
+                      onChange={(e) => updateField('vhost', e.target.value)}
+                      placeholder="/"
+                      className="w-full bg-[#131923] border border-[#232c3d] focus:border-rose-500 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none transition-colors"
+                    />
+                    <p className="text-[11px] text-gray-500">
+                      Target virtual host namespace. Default is <code className="text-rose-300">/</code>.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-300">
+                      Preset Quick Fill
+                    </label>
+                    <div className="flex gap-2 pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateField('url', 'amqp://guest:guest@localhost:5672/');
+                          updateField('managementUrl', 'http://localhost:15672');
+                          updateField('vhost', '/');
+                          updateField('username', 'guest');
+                          updateField('password', 'guest');
+                          updateField('authType', 'userpass');
+                        }}
+                        className="px-2.5 py-1.5 text-[11px] font-medium bg-[#131923] hover:bg-[#1a2332] text-rose-300 border border-[#232c3d] hover:border-rose-500/30 rounded-lg transition-colors"
+                      >
+                        Default Guest (guest:guest)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateField('url', 'amqp://localhost:5672/');
+                          updateField('managementUrl', 'http://localhost:15672');
+                          updateField('vhost', '/');
+                        }}
+                        className="px-2.5 py-1.5 text-[11px] font-medium bg-[#131923] hover:bg-[#1a2332] text-amber-300 border border-[#232c3d] hover:border-amber-500/30 rounded-lg transition-colors"
+                      >
+                        Local AMQP (Port 5672)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : isSQS ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -595,7 +761,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-gray-300">Authentication Method</label>
-              <div className={`grid ${isSQS ? 'grid-cols-4' : 'grid-cols-5'} gap-2`}>
+              <div className={`grid ${isSQS ? 'grid-cols-4' : isRabbitMQ ? 'grid-cols-3' : 'grid-cols-5'} gap-2`}>
                 {isKafka ? (
                   [
                     { id: 'none', label: 'PLAINTEXT' },
@@ -631,6 +797,25 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                       className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
                         form.authType === item.id
                           ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                          : 'bg-[#131923] border-[#232c3d] text-gray-400 hover:text-gray-200'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))
+                ) : isRabbitMQ ? (
+                  [
+                    { id: 'userpass', label: 'User / Password' },
+                    { id: 'none', label: 'URL / Guest' },
+                    { id: 'tls', label: 'mTLS (EXTERNAL)' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => updateField('authType', item.id)}
+                      className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
+                        form.authType === item.id
+                          ? 'bg-rose-500/20 border-rose-500 text-rose-400'
                           : 'bg-[#131923] border-[#232c3d] text-gray-400 hover:text-gray-200'
                       }`}
                     >
@@ -793,6 +978,8 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   <div className="p-4 rounded-lg bg-[#111722] border border-[#1e2736] text-xs text-gray-400">
                     {isKafka
                       ? "PLAINTEXT unauthenticated connection. Standard for local Docker/Kubernetes instances."
+                      : isRabbitMQ
+                      ? "Anonymous access or credentials embedded directly in AMQP URL (e.g. amqp://guest:guest@localhost:5672/)."
                       : "Anonymous access. No credentials or tokens will be provided upon connecting."}
                   </div>
                 )}
@@ -807,7 +994,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                         type="text"
                         value={form.username || ''}
                         onChange={(e) => updateField('username', e.target.value)}
-                        placeholder={isKafka ? "e.g. admin or alice" : "Username"}
+                        placeholder={isKafka ? "e.g. admin or alice" : isRabbitMQ ? "guest" : "Username"}
                         className="w-full bg-[#131923] border border-[#232c3d] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
                       />
                     </div>
@@ -826,7 +1013,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   </div>
                 )}
 
-                {form.authType === 'token' && !isKafka && (
+                {form.authType === 'token' && !isKafka && !isRabbitMQ && (
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-gray-300">Authentication Token</label>
                     <input
@@ -839,7 +1026,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   </div>
                 )}
 
-                {form.authType === 'credentials' && !isKafka && (
+                {form.authType === 'credentials' && !isKafka && !isRabbitMQ && (
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-gray-300">Credentials File (.creds)</label>
                     <div className="flex gap-2">
@@ -861,7 +1048,7 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   </div>
                 )}
 
-                {form.authType === 'nkey' && !isKafka && (
+                {form.authType === 'nkey' && !isKafka && !isRabbitMQ && (
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-gray-300">NKey Seed</label>
                     <input
@@ -874,9 +1061,9 @@ export const ConnectionView: React.FC<ConnectionViewProps> = ({
                   </div>
                 )}
 
-                {form.authType === 'tls' && isKafka && (
+                {form.authType === 'tls' && (isKafka || isRabbitMQ) && (
                   <div className="p-4 rounded-lg bg-[#111722] border border-[#1e2736] text-xs text-gray-400">
-                    Mutual TLS (mTLS) authentication. Configure client certificate and private key in the <span className="text-orange-400 font-semibold cursor-pointer" onClick={() => setActiveTab('tls')}>TLS / Security tab</span>.
+                    Mutual TLS (mTLS / EXTERNAL) authentication. Configure client certificate and private key in the <span className={`font-semibold cursor-pointer ${isRabbitMQ ? 'text-rose-400' : 'text-orange-400'}`} onClick={() => setActiveTab('tls')}>TLS / Security tab</span>.
                   </div>
                 )}
               </>

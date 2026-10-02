@@ -3,6 +3,7 @@
 import {storage} from '../models';
 import {natsmanager} from '../models';
 import {kafkamanager} from '../models';
+import {rabbitmqmanager} from '../models';
 import {sqsmanager} from '../models';
 import {mcpserver} from '../models';
 
@@ -15,6 +16,12 @@ export function CreateConsumer(arg1:natsmanager.ConsumerCreateParams):Promise<vo
 export function CreateKVBucket(arg1:natsmanager.KVBucketCreateParams):Promise<void>;
 
 export function CreateKafkaTopic(arg1:kafkamanager.CreateTopicParams):Promise<void>;
+
+export function CreateRabbitMQBinding(arg1:rabbitmqmanager.CreateBindingParams):Promise<void>;
+
+export function CreateRabbitMQExchange(arg1:rabbitmqmanager.CreateExchangeParams):Promise<rabbitmqmanager.RMQExchangeSummary>;
+
+export function CreateRabbitMQQueue(arg1:rabbitmqmanager.CreateQueueParams):Promise<rabbitmqmanager.RMQQueueSummary>;
 
 export function CreateSQSQueue(arg1:sqsmanager.CreateQueueParams):Promise<sqsmanager.SQSQueueSummary>;
 
@@ -33,6 +40,12 @@ export function DeleteKafkaConsumerGroup(arg1:string):Promise<void>;
 export function DeleteKafkaRecordsUpTo(arg1:string,arg2:number,arg3:number):Promise<void>;
 
 export function DeleteKafkaTopic(arg1:string):Promise<void>;
+
+export function DeleteRabbitMQBinding(arg1:rabbitmqmanager.CreateBindingParams):Promise<void>;
+
+export function DeleteRabbitMQExchange(arg1:string,arg2:string,arg3:boolean):Promise<void>;
+
+export function DeleteRabbitMQQueue(arg1:string,arg2:string,arg3:boolean,arg4:boolean):Promise<void>;
 
 export function DeleteSQSMessage(arg1:string,arg2:string):Promise<void>;
 
@@ -68,6 +81,14 @@ export function GetKafkaTopicDetails(arg1:string):Promise<kafkamanager.TopicDeta
 
 export function GetMCPServerStatus():Promise<mcpserver.ServerStatus>;
 
+export function GetRabbitMQExchangeDetails(arg1:string,arg2:string):Promise<rabbitmqmanager.RMQExchangeDetail>;
+
+export function GetRabbitMQOverview():Promise<rabbitmqmanager.RMQOverview>;
+
+export function GetRabbitMQQueueDetails(arg1:string,arg2:string):Promise<rabbitmqmanager.RMQQueueDetail>;
+
+export function GetRabbitMQStatus():Promise<rabbitmqmanager.RMQClusterStatus>;
+
 export function GetSQSQueueDetails(arg1:string):Promise<sqsmanager.SQSQueueDetail>;
 
 export function GetSQSStatus():Promise<sqsmanager.SQSClusterStatus>;
@@ -90,15 +111,29 @@ export function ListKafkaConsumerGroups():Promise<Array<kafkamanager.ConsumerGro
 
 export function ListKafkaTopics(arg1:boolean):Promise<Array<kafkamanager.TopicSummary>>;
 
+export function ListRabbitMQBindings(arg1:string):Promise<Array<rabbitmqmanager.RMQBindingInfo>>;
+
+export function ListRabbitMQExchanges(arg1:string):Promise<Array<rabbitmqmanager.RMQExchangeSummary>>;
+
+export function ListRabbitMQNodes():Promise<Array<rabbitmqmanager.RMQNodeInfo>>;
+
+export function ListRabbitMQQueues(arg1:string):Promise<Array<rabbitmqmanager.RMQQueueSummary>>;
+
+export function ListRabbitMQVHosts():Promise<Array<rabbitmqmanager.RMQVHostInfo>>;
+
 export function ListSQSQueues(arg1:string):Promise<Array<sqsmanager.SQSQueueSummary>>;
 
 export function ListStreams():Promise<Array<natsmanager.JSStreamInfo>>;
+
+export function PeekRabbitMQMessages(arg1:rabbitmqmanager.PeekRMQMessagesParams):Promise<Array<rabbitmqmanager.RMQMessage>>;
 
 export function PollSQSMessages(arg1:sqsmanager.PollSQSMessagesParams):Promise<Array<sqsmanager.SQSMessage>>;
 
 export function ProduceKafkaRecord(arg1:kafkamanager.ProduceKafkaRecordParams):Promise<kafkamanager.ProduceRecordResult>;
 
 export function PublishMessage(arg1:string,arg2:string,arg3:Record<string, Array<string>>,arg4:string):Promise<void>;
+
+export function PublishRabbitMQMessage(arg1:rabbitmqmanager.PublishRMQMessageParams):Promise<rabbitmqmanager.PublishRMQMessageResult>;
 
 export function PurgeKVDeletes(arg1:string):Promise<void>;
 
@@ -108,6 +143,8 @@ export function PurgeKafkaPartition(arg1:string,arg2:number):Promise<void>;
 
 export function PurgeKafkaTopic(arg1:string):Promise<void>;
 
+export function PurgeRabbitMQQueue(arg1:string,arg2:string):Promise<number>;
+
 export function PurgeSQSQueue(arg1:string):Promise<void>;
 
 export function PurgeStream(arg1:string,arg2:string,arg3:number):Promise<void>;
@@ -115,6 +152,8 @@ export function PurgeStream(arg1:string,arg2:string,arg3:number):Promise<void>;
 export function PutKVEntry(arg1:string,arg2:string,arg3:string):Promise<number>;
 
 export function RedriveDLQ(arg1:sqsmanager.RedriveDLQParams):Promise<sqsmanager.RedriveDLQResult>;
+
+export function RedriveRabbitMQDLQ(arg1:rabbitmqmanager.RedriveDLQParams):Promise<rabbitmqmanager.RedriveDLQResult>;
 
 export function RequestMessage(arg1:string,arg2:Record<string, Array<string>>,arg3:string,arg4:number):Promise<natsmanager.PubSubMessage>;
 
@@ -132,11 +171,15 @@ export function StartKafkaLiveTail(arg1:string,arg2:Array<number>):Promise<void>
 
 export function StartMCPServer(arg1:number,arg2:boolean):Promise<void>;
 
+export function StartRabbitMQLiveConsume(arg1:rabbitmqmanager.ConsumeRMQMessagesParams):Promise<void>;
+
 export function StartSQSLivePoll(arg1:sqsmanager.PollSQSMessagesParams):Promise<void>;
 
 export function StopKafkaLiveTail():Promise<void>;
 
 export function StopMCPServer():Promise<void>;
+
+export function StopRabbitMQLiveConsume():Promise<void>;
 
 export function StopSQSLivePoll():Promise<void>;
 

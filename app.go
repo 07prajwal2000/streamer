@@ -8,6 +8,7 @@ import (
 	"streamer/internal/kafkamanager"
 	"streamer/internal/mcpserver"
 	"streamer/internal/natsmanager"
+	"streamer/internal/rabbitmqmanager"
 	"streamer/internal/sqsmanager"
 	"streamer/internal/storage"
 
@@ -21,6 +22,7 @@ type App struct {
 	natsManager  *natsmanager.NatsManager
 	kafkaManager *kafkamanager.KafkaManager
 	sqsManager   *sqsmanager.SqsManager
+	rmqManager   *rabbitmqmanager.RabbitMQManager
 	mcpServer    *mcpserver.Server
 	activeProto  string
 }
@@ -35,12 +37,14 @@ func NewApp() *App {
 	mgr := natsmanager.NewNatsManager()
 	kmgr := kafkamanager.NewKafkaManager()
 	sqsmgr := sqsmanager.NewSqsManager()
+	rmqmgr := rabbitmqmanager.NewRabbitMQManager()
 
 	app := &App{
 		storage:      store,
 		natsManager:  mgr,
 		kafkaManager: kmgr,
 		sqsManager:   sqsmgr,
+		rmqManager:   rmqmgr,
 	}
 
 	app.mcpServer = mcpserver.NewServer(&mcpBackend{app: app})
@@ -53,6 +57,7 @@ func (a *App) startup(ctx context.Context) {
 	a.natsManager.SetContext(ctx)
 	a.kafkaManager.SetContext(ctx)
 	a.sqsManager.SetContext(ctx)
+	a.rmqManager.SetContext(ctx)
 
 	// Auto-start MCP server if enabled in settings
 	if a.GetSetting("mcp_auto_start", "false") == "true" {
@@ -70,6 +75,9 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) shutdown(ctx context.Context) {
 	if a.mcpServer != nil {
 		_ = a.mcpServer.Stop()
+	}
+	if a.rmqManager != nil {
+		a.rmqManager.Disconnect()
 	}
 }
 
@@ -130,6 +138,26 @@ func (a *App) TestConnection(p storage.ConnectionProfile) (*natsmanager.ServerSt
 			TopicsCount:      sqsStatus.QueuesCount,
 			RTTMs:            sqsStatus.RTTMs,
 		}, nil
+	} else if p.Protocol == "rabbitmq" {
+		rmqStatus, err := a.rmqManager.TestConnection(p)
+		if err != nil {
+			return nil, err
+		}
+		ver := rmqStatus.RabbitMQVersion
+		if ver == "" {
+			ver = "RabbitMQ AMQP"
+		} else {
+			ver = fmt.Sprintf("RabbitMQ v%s", ver)
+		}
+		return &natsmanager.ServerStatus{
+			Connected:        rmqStatus.Connected,
+			Protocol:         "rabbitmq",
+			CurrentProfileID: rmqStatus.CurrentProfileID,
+			ClusterID:        rmqStatus.ClusterName,
+			ServerVersion:    ver,
+			TopicsCount:      rmqStatus.QueuesCount,
+			RTTMs:            rmqStatus.RTTMs,
+		}, nil
 	}
 	return a.natsManager.TestConnection(p)
 }
@@ -139,6 +167,7 @@ func (a *App) Connect(p storage.ConnectionProfile) (*natsmanager.ServerStatus, e
 	if p.Protocol == "kafka" {
 		a.natsManager.Disconnect()
 		a.sqsManager.Disconnect()
+		a.rmqManager.Disconnect()
 		ks, err := a.kafkaManager.Connect(p)
 		if err == nil && a.storage != nil {
 			a.activeProto = "kafka"
@@ -165,6 +194,7 @@ func (a *App) Connect(p storage.ConnectionProfile) (*natsmanager.ServerStatus, e
 	} else if p.Protocol == "sqs" {
 		a.natsManager.Disconnect()
 		a.kafkaManager.Disconnect()
+		a.rmqManager.Disconnect()
 		sqsStatus, err := a.sqsManager.Connect(p)
 		if err == nil && a.storage != nil {
 			a.activeProto = "sqs"
@@ -185,10 +215,41 @@ func (a *App) Connect(p storage.ConnectionProfile) (*natsmanager.ServerStatus, e
 			RTTMs:            sqsStatus.RTTMs,
 		}
 		return status, nil
+	} else if p.Protocol == "rabbitmq" {
+		a.natsManager.Disconnect()
+		a.kafkaManager.Disconnect()
+		a.sqsManager.Disconnect()
+		rmqStatus, err := a.rmqManager.Connect(p)
+		if err == nil && a.storage != nil {
+			a.activeProto = "rabbitmq"
+			_ = a.storage.SaveConnection(p)
+			_ = a.storage.UpdateLastConnected(p.ID)
+		}
+		if err != nil {
+			return nil, err
+		}
+		ver := rmqStatus.RabbitMQVersion
+		if ver == "" {
+			ver = "RabbitMQ AMQP"
+		} else {
+			ver = fmt.Sprintf("RabbitMQ v%s", ver)
+		}
+		status := &natsmanager.ServerStatus{
+			Connected:        rmqStatus.Connected,
+			Connecting:       rmqStatus.Connecting,
+			Protocol:         "rabbitmq",
+			CurrentProfileID: rmqStatus.CurrentProfileID,
+			ClusterID:        rmqStatus.ClusterName,
+			ServerVersion:    ver,
+			TopicsCount:      rmqStatus.QueuesCount,
+			RTTMs:            rmqStatus.RTTMs,
+		}
+		return status, nil
 	}
 
 	a.kafkaManager.Disconnect()
 	a.sqsManager.Disconnect()
+	a.rmqManager.Disconnect()
 	status, err := a.natsManager.Connect(p)
 	if err == nil && a.storage != nil {
 		a.activeProto = "nats"
@@ -203,6 +264,7 @@ func (a *App) Disconnect() {
 	a.natsManager.Disconnect()
 	a.kafkaManager.Disconnect()
 	a.sqsManager.Disconnect()
+	a.rmqManager.Disconnect()
 	a.activeProto = ""
 }
 
@@ -237,6 +299,25 @@ func (a *App) GetConnectionStatus() natsmanager.ServerStatus {
 			TopicsCount:      sqsStatus.QueuesCount,
 			RTTMs:            sqsStatus.RTTMs,
 		}
+	} else if a.activeProto == "rabbitmq" {
+		rmqStatus := a.rmqManager.GetStatus()
+		ver := rmqStatus.RabbitMQVersion
+		if ver == "" {
+			ver = "RabbitMQ AMQP"
+		} else {
+			ver = fmt.Sprintf("RabbitMQ v%s", ver)
+		}
+		return natsmanager.ServerStatus{
+			Connected:        rmqStatus.Connected,
+			Connecting:       rmqStatus.Connecting,
+			Protocol:         "rabbitmq",
+			LastError:        rmqStatus.LastError,
+			CurrentProfileID: rmqStatus.CurrentProfileID,
+			ClusterID:        rmqStatus.ClusterName,
+			ServerVersion:    ver,
+			TopicsCount:      rmqStatus.QueuesCount,
+			RTTMs:            rmqStatus.RTTMs,
+		}
 	}
 	return a.natsManager.GetStatus()
 }
@@ -244,6 +325,11 @@ func (a *App) GetConnectionStatus() natsmanager.ServerStatus {
 // GetSQSStatus returns dedicated SQS telemetry
 func (a *App) GetSQSStatus() sqsmanager.SQSClusterStatus {
 	return a.sqsManager.GetStatus()
+}
+
+// GetRabbitMQStatus returns dedicated RabbitMQ telemetry
+func (a *App) GetRabbitMQStatus() rabbitmqmanager.RMQClusterStatus {
+	return a.rmqManager.GetStatus()
 }
 
 // SelectFile opens a native file dialog for selecting creds/certs
@@ -548,6 +634,89 @@ func (a *App) RedriveDLQ(params sqsmanager.RedriveDLQParams) (*sqsmanager.Redriv
 	return a.sqsManager.RedriveDLQ(a.ctx, params)
 }
 
+// --- RabbitMQ / AMQP Suite Bindings ---
+
+func (a *App) GetRabbitMQOverview() (*rabbitmqmanager.RMQOverview, error) {
+	return a.rmqManager.GetOverview(a.ctx)
+}
+
+func (a *App) ListRabbitMQNodes() ([]rabbitmqmanager.RMQNodeInfo, error) {
+	return a.rmqManager.ListNodes(a.ctx)
+}
+
+func (a *App) ListRabbitMQVHosts() ([]rabbitmqmanager.RMQVHostInfo, error) {
+	return a.rmqManager.ListVHosts(a.ctx)
+}
+
+func (a *App) ListRabbitMQQueues(vhost string) ([]rabbitmqmanager.RMQQueueSummary, error) {
+	return a.rmqManager.ListQueues(a.ctx, vhost)
+}
+
+func (a *App) GetRabbitMQQueueDetails(vhost string, queue string) (*rabbitmqmanager.RMQQueueDetail, error) {
+	return a.rmqManager.GetQueueDetails(a.ctx, vhost, queue)
+}
+
+func (a *App) CreateRabbitMQQueue(params rabbitmqmanager.CreateQueueParams) (*rabbitmqmanager.RMQQueueSummary, error) {
+	return a.rmqManager.CreateQueue(a.ctx, params)
+}
+
+func (a *App) DeleteRabbitMQQueue(vhost string, queue string, ifUnused bool, ifEmpty bool) error {
+	return a.rmqManager.DeleteQueue(a.ctx, vhost, queue, ifUnused, ifEmpty)
+}
+
+func (a *App) PurgeRabbitMQQueue(vhost string, queue string) (int, error) {
+	return a.rmqManager.PurgeQueue(a.ctx, vhost, queue)
+}
+
+func (a *App) ListRabbitMQExchanges(vhost string) ([]rabbitmqmanager.RMQExchangeSummary, error) {
+	return a.rmqManager.ListExchanges(a.ctx, vhost)
+}
+
+func (a *App) GetRabbitMQExchangeDetails(vhost string, exchange string) (*rabbitmqmanager.RMQExchangeDetail, error) {
+	return a.rmqManager.GetExchangeDetails(a.ctx, vhost, exchange)
+}
+
+func (a *App) CreateRabbitMQExchange(params rabbitmqmanager.CreateExchangeParams) (*rabbitmqmanager.RMQExchangeSummary, error) {
+	return a.rmqManager.CreateExchange(a.ctx, params)
+}
+
+func (a *App) DeleteRabbitMQExchange(vhost string, exchange string, ifUnused bool) error {
+	return a.rmqManager.DeleteExchange(a.ctx, vhost, exchange, ifUnused)
+}
+
+func (a *App) ListRabbitMQBindings(vhost string) ([]rabbitmqmanager.RMQBindingInfo, error) {
+	return a.rmqManager.ListBindings(a.ctx, vhost)
+}
+
+func (a *App) CreateRabbitMQBinding(params rabbitmqmanager.CreateBindingParams) error {
+	return a.rmqManager.CreateBinding(a.ctx, params)
+}
+
+func (a *App) DeleteRabbitMQBinding(params rabbitmqmanager.CreateBindingParams) error {
+	return a.rmqManager.DeleteBinding(a.ctx, params)
+}
+
+func (a *App) PublishRabbitMQMessage(params rabbitmqmanager.PublishRMQMessageParams) (*rabbitmqmanager.PublishRMQMessageResult, error) {
+	return a.rmqManager.PublishMessage(a.ctx, params)
+}
+
+func (a *App) PeekRabbitMQMessages(params rabbitmqmanager.PeekRMQMessagesParams) ([]rabbitmqmanager.RMQMessage, error) {
+	return a.rmqManager.PeekMessages(a.ctx, params)
+}
+
+func (a *App) StartRabbitMQLiveConsume(params rabbitmqmanager.ConsumeRMQMessagesParams) error {
+	return a.rmqManager.StartLiveConsume(params)
+}
+
+func (a *App) StopRabbitMQLiveConsume() error {
+	a.rmqManager.StopLiveConsume()
+	return nil
+}
+
+func (a *App) RedriveRabbitMQDLQ(params rabbitmqmanager.RedriveDLQParams) (*rabbitmqmanager.RedriveDLQResult, error) {
+	return a.rmqManager.RedriveDLQ(a.ctx, params)
+}
+
 // -------------------------------------------------------------
 // Model Context Protocol (MCP) Server Bindings
 // -------------------------------------------------------------
@@ -706,4 +875,60 @@ func (m *mcpBackend) UpdateSQSQueueAttributes(queueURL string, attributes map[st
 
 func (m *mcpBackend) RedriveDLQ(params sqsmanager.RedriveDLQParams) (*sqsmanager.RedriveDLQResult, error) {
 	return m.app.RedriveDLQ(params)
+}
+
+func (m *mcpBackend) GetRabbitMQOverview() (*rabbitmqmanager.RMQOverview, error) {
+	return m.app.GetRabbitMQOverview()
+}
+
+func (m *mcpBackend) ListRabbitMQNodes() ([]rabbitmqmanager.RMQNodeInfo, error) {
+	return m.app.ListRabbitMQNodes()
+}
+
+func (m *mcpBackend) ListRabbitMQVHosts() ([]rabbitmqmanager.RMQVHostInfo, error) {
+	return m.app.ListRabbitMQVHosts()
+}
+
+func (m *mcpBackend) ListRabbitMQQueues(vhost string) ([]rabbitmqmanager.RMQQueueSummary, error) {
+	return m.app.ListRabbitMQQueues(vhost)
+}
+
+func (m *mcpBackend) GetRabbitMQQueueDetails(vhost string, queue string) (*rabbitmqmanager.RMQQueueDetail, error) {
+	return m.app.GetRabbitMQQueueDetails(vhost, queue)
+}
+
+func (m *mcpBackend) CreateRabbitMQQueue(params rabbitmqmanager.CreateQueueParams) (*rabbitmqmanager.RMQQueueSummary, error) {
+	return m.app.CreateRabbitMQQueue(params)
+}
+
+func (m *mcpBackend) ListRabbitMQExchanges(vhost string) ([]rabbitmqmanager.RMQExchangeSummary, error) {
+	return m.app.ListRabbitMQExchanges(vhost)
+}
+
+func (m *mcpBackend) GetRabbitMQExchangeDetails(vhost string, exchange string) (*rabbitmqmanager.RMQExchangeDetail, error) {
+	return m.app.GetRabbitMQExchangeDetails(vhost, exchange)
+}
+
+func (m *mcpBackend) CreateRabbitMQExchange(params rabbitmqmanager.CreateExchangeParams) (*rabbitmqmanager.RMQExchangeSummary, error) {
+	return m.app.CreateRabbitMQExchange(params)
+}
+
+func (m *mcpBackend) ListRabbitMQBindings(vhost string) ([]rabbitmqmanager.RMQBindingInfo, error) {
+	return m.app.ListRabbitMQBindings(vhost)
+}
+
+func (m *mcpBackend) CreateRabbitMQBinding(params rabbitmqmanager.CreateBindingParams) error {
+	return m.app.CreateRabbitMQBinding(params)
+}
+
+func (m *mcpBackend) PublishRabbitMQMessage(params rabbitmqmanager.PublishRMQMessageParams) (*rabbitmqmanager.PublishRMQMessageResult, error) {
+	return m.app.PublishRabbitMQMessage(params)
+}
+
+func (m *mcpBackend) PeekRabbitMQMessages(params rabbitmqmanager.PeekRMQMessagesParams) ([]rabbitmqmanager.RMQMessage, error) {
+	return m.app.PeekRabbitMQMessages(params)
+}
+
+func (m *mcpBackend) RedriveRabbitMQDLQ(params rabbitmqmanager.RedriveDLQParams) (*rabbitmqmanager.RedriveDLQResult, error) {
+	return m.app.RedriveRabbitMQDLQ(params)
 }

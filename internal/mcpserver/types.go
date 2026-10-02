@@ -6,6 +6,7 @@ import (
 
 	"streamer/internal/kafkamanager"
 	"streamer/internal/natsmanager"
+	"streamer/internal/rabbitmqmanager"
 	"streamer/internal/sqsmanager"
 )
 
@@ -82,4 +83,20 @@ type StreamerBackend interface {
 	CreateSQSQueue(params sqsmanager.CreateQueueParams) (*sqsmanager.SQSQueueSummary, error)
 	UpdateSQSQueueAttributes(queueURL string, attributes map[string]string) error
 	RedriveDLQ(params sqsmanager.RedriveDLQParams) (*sqsmanager.RedriveDLQResult, error)
+
+	// RabbitMQ
+	GetRabbitMQOverview() (*rabbitmqmanager.RMQOverview, error)
+	ListRabbitMQNodes() ([]rabbitmqmanager.RMQNodeInfo, error)
+	ListRabbitMQVHosts() ([]rabbitmqmanager.RMQVHostInfo, error)
+	ListRabbitMQQueues(vhost string) ([]rabbitmqmanager.RMQQueueSummary, error)
+	GetRabbitMQQueueDetails(vhost string, queue string) (*rabbitmqmanager.RMQQueueDetail, error)
+	CreateRabbitMQQueue(params rabbitmqmanager.CreateQueueParams) (*rabbitmqmanager.RMQQueueSummary, error)
+	ListRabbitMQExchanges(vhost string) ([]rabbitmqmanager.RMQExchangeSummary, error)
+	GetRabbitMQExchangeDetails(vhost string, exchange string) (*rabbitmqmanager.RMQExchangeDetail, error)
+	CreateRabbitMQExchange(params rabbitmqmanager.CreateExchangeParams) (*rabbitmqmanager.RMQExchangeSummary, error)
+	ListRabbitMQBindings(vhost string) ([]rabbitmqmanager.RMQBindingInfo, error)
+	CreateRabbitMQBinding(params rabbitmqmanager.CreateBindingParams) error
+	PublishRabbitMQMessage(params rabbitmqmanager.PublishRMQMessageParams) (*rabbitmqmanager.PublishRMQMessageResult, error)
+	PeekRabbitMQMessages(params rabbitmqmanager.PeekRMQMessagesParams) ([]rabbitmqmanager.RMQMessage, error)
+	RedriveRabbitMQDLQ(params rabbitmqmanager.RedriveDLQParams) (*rabbitmqmanager.RedriveDLQResult, error)
 }

@@ -22,6 +22,18 @@ export function CreateKafkaTopic(arg1) {
   return window['go']['main']['App']['CreateKafkaTopic'](arg1);
 }
 
+export function CreateRabbitMQBinding(arg1) {
+  return window['go']['main']['App']['CreateRabbitMQBinding'](arg1);
+}
+
+export function CreateRabbitMQExchange(arg1) {
+  return window['go']['main']['App']['CreateRabbitMQExchange'](arg1);
+}
+
+export function CreateRabbitMQQueue(arg1) {
+  return window['go']['main']['App']['CreateRabbitMQQueue'](arg1);
+}
+
 export function CreateSQSQueue(arg1) {
   return window['go']['main']['App']['CreateSQSQueue'](arg1);
 }
@@ -56,6 +68,18 @@ export function DeleteKafkaRecordsUpTo(arg1, arg2, arg3) {
 
 export function DeleteKafkaTopic(arg1) {
   return window['go']['main']['App']['DeleteKafkaTopic'](arg1);
+}
+
+export function DeleteRabbitMQBinding(arg1) {
+  return window['go']['main']['App']['DeleteRabbitMQBinding'](arg1);
+}
+
+export function DeleteRabbitMQExchange(arg1, arg2, arg3) {
+  return window['go']['main']['App']['DeleteRabbitMQExchange'](arg1, arg2, arg3);
+}
+
+export function DeleteRabbitMQQueue(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['DeleteRabbitMQQueue'](arg1, arg2, arg3, arg4);
 }
 
 export function DeleteSQSMessage(arg1, arg2) {
@@ -126,6 +150,22 @@ export function GetMCPServerStatus() {
   return window['go']['main']['App']['GetMCPServerStatus']();
 }
 
+export function GetRabbitMQExchangeDetails(arg1, arg2) {
+  return window['go']['main']['App']['GetRabbitMQExchangeDetails'](arg1, arg2);
+}
+
+export function GetRabbitMQOverview() {
+  return window['go']['main']['App']['GetRabbitMQOverview']();
+}
+
+export function GetRabbitMQQueueDetails(arg1, arg2) {
+  return window['go']['main']['App']['GetRabbitMQQueueDetails'](arg1, arg2);
+}
+
+export function GetRabbitMQStatus() {
+  return window['go']['main']['App']['GetRabbitMQStatus']();
+}
+
 export function GetSQSQueueDetails(arg1) {
   return window['go']['main']['App']['GetSQSQueueDetails'](arg1);
 }
@@ -170,12 +210,36 @@ export function ListKafkaTopics(arg1) {
   return window['go']['main']['App']['ListKafkaTopics'](arg1);
 }
 
+export function ListRabbitMQBindings(arg1) {
+  return window['go']['main']['App']['ListRabbitMQBindings'](arg1);
+}
+
+export function ListRabbitMQExchanges(arg1) {
+  return window['go']['main']['App']['ListRabbitMQExchanges'](arg1);
+}
+
+export function ListRabbitMQNodes() {
+  return window['go']['main']['App']['ListRabbitMQNodes']();
+}
+
+export function ListRabbitMQQueues(arg1) {
+  return window['go']['main']['App']['ListRabbitMQQueues'](arg1);
+}
+
+export function ListRabbitMQVHosts() {
+  return window['go']['main']['App']['ListRabbitMQVHosts']();
+}
+
 export function ListSQSQueues(arg1) {
   return window['go']['main']['App']['ListSQSQueues'](arg1);
 }
 
 export function ListStreams() {
   return window['go']['main']['App']['ListStreams']();
+}
+
+export function PeekRabbitMQMessages(arg1) {
+  return window['go']['main']['App']['PeekRabbitMQMessages'](arg1);
 }
 
 export function PollSQSMessages(arg1) {
@@ -188,6 +252,10 @@ export function ProduceKafkaRecord(arg1) {
 
 export function PublishMessage(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['PublishMessage'](arg1, arg2, arg3, arg4);
+}
+
+export function PublishRabbitMQMessage(arg1) {
+  return window['go']['main']['App']['PublishRabbitMQMessage'](arg1);
 }
 
 export function PurgeKVDeletes(arg1) {
@@ -206,6 +274,10 @@ export function PurgeKafkaTopic(arg1) {
   return window['go']['main']['App']['PurgeKafkaTopic'](arg1);
 }
 
+export function PurgeRabbitMQQueue(arg1, arg2) {
+  return window['go']['main']['App']['PurgeRabbitMQQueue'](arg1, arg2);
+}
+
 export function PurgeSQSQueue(arg1) {
   return window['go']['main']['App']['PurgeSQSQueue'](arg1);
 }
@@ -220,6 +292,10 @@ export function PutKVEntry(arg1, arg2, arg3) {
 
 export function RedriveDLQ(arg1) {
   return window['go']['main']['App']['RedriveDLQ'](arg1);
+}
+
+export function RedriveRabbitMQDLQ(arg1) {
+  return window['go']['main']['App']['RedriveRabbitMQDLQ'](arg1);
 }
 
 export function RequestMessage(arg1, arg2, arg3, arg4) {
@@ -254,6 +330,10 @@ export function StartMCPServer(arg1, arg2) {
   return window['go']['main']['App']['StartMCPServer'](arg1, arg2);
 }
 
+export function StartRabbitMQLiveConsume(arg1) {
+  return window['go']['main']['App']['StartRabbitMQLiveConsume'](arg1);
+}
+
 export function StartSQSLivePoll(arg1) {
   return window['go']['main']['App']['StartSQSLivePoll'](arg1);
 }
@@ -264,6 +344,10 @@ export function StopKafkaLiveTail() {
 
 export function StopMCPServer() {
   return window['go']['main']['App']['StopMCPServer']();
+}
+
+export function StopRabbitMQLiveConsume() {
+  return window['go']['main']['App']['StopRabbitMQLiveConsume']();
 }
 
 export function StopSQSLivePoll() {
