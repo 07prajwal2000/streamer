@@ -29,6 +29,8 @@ type ConnectionProfile struct {
 	ClientName      string     `json:"clientName"`
 	AWSRegion       string     `json:"awsRegion,omitempty"`
 	AWSProfile      string     `json:"awsProfile,omitempty"`
+	ManagementURL   string     `json:"managementUrl,omitempty"`
+	VHost           string     `json:"vhost,omitempty"`
 	CreatedAt       time.Time  `json:"createdAt"`
 	UpdatedAt       time.Time  `json:"updatedAt"`
 	LastConnectedAt *time.Time `json:"lastConnectedAt,omitempty"`
@@ -90,6 +92,10 @@ func (s *Storage) initSchema() error {
 		tls_insecure INTEGER DEFAULT 0,
 		tls_sni TEXT,
 		client_name TEXT DEFAULT 'Streamer',
+		aws_region TEXT,
+		aws_profile TEXT,
+		management_url TEXT,
+		vhost TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		last_connected_at DATETIME
@@ -109,6 +115,8 @@ func (s *Storage) initSchema() error {
 	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN tls_sni TEXT;")
 	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN aws_region TEXT;")
 	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN aws_profile TEXT;")
+	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN management_url TEXT;")
+	_, _ = s.db.Exec("ALTER TABLE connections ADD COLUMN vhost TEXT;")
 
 	return nil
 }
@@ -133,6 +141,7 @@ func (s *Storage) GetAllConnections() ([]ConnectionProfile, error) {
 		       creds_file_path, tls_ca_file, tls_cert_file, tls_key_file,
 		       tls_insecure, COALESCE(tls_sni, ''), client_name,
 		       COALESCE(aws_region, ''), COALESCE(aws_profile, ''),
+		       COALESCE(management_url, ''), COALESCE(vhost, ''),
 		       created_at, updated_at, last_connected_at
 		FROM connections
 		ORDER BY updated_at DESC
@@ -156,6 +165,7 @@ func (s *Storage) GetAllConnections() ([]ConnectionProfile, error) {
 			&credsFile, &tlsCA, &tlsCert, &tlsKey,
 			&insecure, &p.TLSSNI, &p.ClientName,
 			&p.AWSRegion, &p.AWSProfile,
+			&p.ManagementURL, &p.VHost,
 			&p.CreatedAt, &p.UpdatedAt, &lastConnected,
 		)
 		if err != nil {
@@ -190,6 +200,7 @@ func (s *Storage) GetConnection(id string) (*ConnectionProfile, error) {
 		       creds_file_path, tls_ca_file, tls_cert_file, tls_key_file,
 		       tls_insecure, COALESCE(tls_sni, ''), client_name,
 		       COALESCE(aws_region, ''), COALESCE(aws_profile, ''),
+		       COALESCE(management_url, ''), COALESCE(vhost, ''),
 		       created_at, updated_at, last_connected_at
 		FROM connections
 		WHERE id = ?
@@ -207,6 +218,7 @@ func (s *Storage) GetConnection(id string) (*ConnectionProfile, error) {
 		&credsFile, &tlsCA, &tlsCert, &tlsKey,
 		&insecure, &p.TLSSNI, &p.ClientName,
 		&p.AWSRegion, &p.AWSProfile,
+		&p.ManagementURL, &p.VHost,
 		&p.CreatedAt, &p.UpdatedAt, &lastConnected,
 	)
 	if err != nil {
@@ -245,8 +257,8 @@ func (s *Storage) SaveConnection(p ConnectionProfile) error {
 	INSERT INTO connections (
 		id, protocol, name, url, auth_type, username, password, token, nkey_seed,
 		creds_file_path, tls_ca_file, tls_cert_file, tls_key_file,
-		tls_insecure, tls_sni, client_name, aws_region, aws_profile, created_at, updated_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		tls_insecure, tls_sni, client_name, aws_region, aws_profile, management_url, vhost, created_at, updated_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(id) DO UPDATE SET
 		protocol = excluded.protocol,
 		name = excluded.name,
@@ -265,6 +277,8 @@ func (s *Storage) SaveConnection(p ConnectionProfile) error {
 		client_name = excluded.client_name,
 		aws_region = excluded.aws_region,
 		aws_profile = excluded.aws_profile,
+		management_url = excluded.management_url,
+		vhost = excluded.vhost,
 		updated_at = excluded.updated_at
 	`
 	now := time.Now().UTC()
@@ -277,7 +291,8 @@ func (s *Storage) SaveConnection(p ConnectionProfile) error {
 		p.ID, p.Protocol, p.Name, p.URL, p.AuthType,
 		p.Username, p.Password, p.Token, p.NKeySeed,
 		p.CredsFilePath, p.TLSCAFile, p.TLSCertFile, p.TLSKeyFile,
-		insecure, p.TLSSNI, p.ClientName, p.AWSRegion, p.AWSProfile, p.CreatedAt, p.UpdatedAt,
+		insecure, p.TLSSNI, p.ClientName, p.AWSRegion, p.AWSProfile,
+		p.ManagementURL, p.VHost, p.CreatedAt, p.UpdatedAt,
 	)
 	return err
 }

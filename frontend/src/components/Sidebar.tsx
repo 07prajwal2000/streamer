@@ -19,7 +19,8 @@ import {
   HardDrive,
   Users,
   MessageSquare,
-  Inbox
+  Inbox,
+  Boxes
 } from 'lucide-react';
 import { storage, natsmanager } from '../../wailsjs/go/models';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
@@ -70,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="font-semibold text-sm tracking-tight text-white flex items-center gap-1.5">
               <span>Streamer</span>
             </div>
-            <div className="text-[10px] text-gray-500 font-mono leading-none">NATS, Kafka & SQS</div>
+            <div className="text-[10px] text-gray-500 font-mono leading-none">NATS, Kafka, SQS & RMQ</div>
           </div>
         </div>
       </div>
@@ -168,6 +169,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>Messages & Poller</span>
             </button>
           </>
+        ) : activeStatus.connected && activeStatus.protocol === 'rabbitmq' ? (
+          <>
+            <button
+              onClick={() => onTabChange('rabbitmq-overview')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'rabbitmq-overview'
+                  ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5 text-rose-400" />
+              <span>Overview & Nodes</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('rabbitmq-queues')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'rabbitmq-queues'
+                  ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5 text-rose-400" />
+              <span>Queues & Metrics</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('rabbitmq-exchanges')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'rabbitmq-exchanges'
+                  ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <Boxes className="w-3.5 h-3.5 text-rose-400" />
+              <span>Exchanges & Bindings</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('rabbitmq-messages')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'rabbitmq-messages'
+                  ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-rose-400" />
+              <span>Messages Studio</span>
+            </button>
+          </>
         ) : (
           <>
             <button
@@ -243,6 +294,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               const isConnecting = activeStatus.connecting && activeProfileId === p.id;
               const isKafka = p.protocol === 'kafka';
               const isSQS = p.protocol === 'sqs';
+              const isRabbitMQ = p.protocol === 'rabbitmq';
 
               return (
                 <div
@@ -254,6 +306,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         ? 'bg-[#191512] border-orange-500/40 text-white shadow-sm'
                         : isSQS
                         ? 'bg-[#1a1711] border-amber-500/40 text-white shadow-sm'
+                        : isRabbitMQ
+                        ? 'bg-[#191113] border-rose-500/40 text-white shadow-sm'
                         : 'bg-[#151c27] border-blue-500/30 text-white shadow-sm'
                       : 'border-transparent text-gray-300 hover:bg-[#111720] hover:text-white'
                   }`}
@@ -264,6 +318,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <Layers className="w-3.5 h-3.5 text-orange-400 shrink-0" />
                       ) : isSQS ? (
                         <Inbox className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      ) : isRabbitMQ ? (
+                        <Boxes className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                       ) : (
                         <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                       )}
@@ -293,6 +349,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               ? 'hover:bg-orange-500/20 text-gray-400 hover:text-orange-400'
                               : isSQS
                               ? 'hover:bg-amber-500/20 text-gray-400 hover:text-amber-400'
+                              : isRabbitMQ
+                              ? 'hover:bg-rose-500/20 text-gray-400 hover:text-rose-400'
                               : 'hover:bg-blue-500/20 text-gray-400 hover:text-blue-400'
                           }`}
                         >
@@ -302,7 +360,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   </div>
                   <div className="text-[11px] text-gray-500 truncate font-mono mt-0.5">
-                    {p.url || (p.protocol === 'sqs' ? `AWS Cloud (${p.awsRegion || 'us-east-1'})` : '')}
+                    {p.url || (p.protocol === 'sqs' ? `AWS Cloud (${p.awsRegion || 'us-east-1'})` : p.protocol === 'rabbitmq' ? `AMQP (${p.vhost || '/'})` : '')}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-500">
                     {isKafka ? (
@@ -314,6 +372,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 text-[9px] font-semibold border border-amber-500/25">
                         <Inbox className="w-2.5 h-2.5" />
                         SQS
+                      </span>
+                    ) : isRabbitMQ ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-400 text-[9px] font-semibold border border-rose-500/25">
+                        <Boxes className="w-2.5 h-2.5" />
+                        RABBITMQ
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-400 text-[9px] font-semibold border border-cyan-500/25">

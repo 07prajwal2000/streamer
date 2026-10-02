@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <b>A unified, high-performance desktop GUI suite for Apache Kafka, Redpanda, NATS (JetStream & KV), and Amazon SQS — featuring an embedded Model Context Protocol (MCP) Server for AI agents.</b>
+  <b>A unified, high-performance desktop GUI suite for Apache Kafka, Redpanda, NATS (JetStream & KV), Amazon SQS, and RabbitMQ (AMQP 0-9-1) — featuring an embedded Model Context Protocol (MCP) Server for AI agents.</b>
   <br />
   Built with <b>Pure Go</b> (Zero CGO), <b>Wails v2</b>, <b>React 18</b>, <b>TypeScript</b>, and <b>Tailwind CSS</b>.
 </p>
@@ -20,6 +20,7 @@
   <img src="https://img.shields.io/badge/Redpanda-Supported-EC1C24?logo=redpanda" alt="Redpanda Support" />
   <img src="https://img.shields.io/badge/NATS-v2.10+-00ADEF?logo=nats.io" alt="NATS Support" />
   <img src="https://img.shields.io/badge/Amazon%20SQS-Supported-FF9900?logo=amazonsqs" alt="Amazon SQS Support" />
+  <img src="https://img.shields.io/badge/RabbitMQ-AMQP%200--9--1-FF6600?logo=rabbitmq" alt="RabbitMQ Support" />
   <img src="https://img.shields.io/badge/MCP%20Server-Embedded-8A2BE2" alt="MCP Server Support" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
 </p>
@@ -30,7 +31,7 @@
 
 ## 🌟 Overview
 
-**Streamer** is an intuitive, fast, developer-centric desktop management application for modern distributed streaming platforms. Designed from the ground up for high throughput and zero native C-library headaches, Streamer provides first-class support for **Apache Kafka & Redpanda**, **NATS & JetStream**, and **Amazon SQS** in a single desktop application.
+**Streamer** is an intuitive, fast, developer-centric desktop management application for modern distributed streaming platforms. Designed from the ground up for high throughput and zero native C-library headaches, Streamer provides first-class support for **Apache Kafka & Redpanda**, **NATS & JetStream**, **Amazon SQS**, and **RabbitMQ (AMQP 0-9-1)** in a single desktop application.
 
 It also features a built-in, local **Model Context Protocol (MCP) Server**, enabling AI coding assistants (such as Claude Desktop, Cursor, and Antigravity) to safely discover cluster metadata, inspect topics/queues, query messages, and run sequential streaming actions directly from chat.
 
@@ -39,11 +40,12 @@ It also features a built-in, local **Model Context Protocol (MCP) Server**, enab
 ## ✨ Key Features
 
 ### 🔌 Unified Connection Management
-- **Multi-Protocol Support**: Connect to **Apache Kafka**, **Redpanda**, **WarpStream**, **AWS MSK**, **NATS**, and **Amazon SQS** (AWS, LocalStack, ElasticMQ) with automatic protocol detection and dedicated visual branding.
+- **Multi-Protocol Support**: Connect to **Apache Kafka**, **Redpanda**, **WarpStream**, **AWS MSK**, **NATS**, **Amazon SQS** (AWS, LocalStack, ElasticMQ), and **RabbitMQ** (AMQP 0-9-1 & Management HTTP) with automatic protocol detection and dedicated visual branding.
 - **Enterprise Authentication**:
   - **Kafka / Redpanda**: PLAINTEXT, SASL/PLAIN, SASL SCRAM-256, SASL SCRAM-512, TLS/SSL, mTLS (Client Certificate & Key), and custom TLS SNI.
   - **NATS**: Anonymous, Username & Password, Token, NKey, and User Credentials (`.creds` file).
   - **Amazon SQS**: AWS Static Credentials (Access Key & Secret Key), Session Tokens, Regions, and custom LocalStack/ElasticMQ endpoint URLs.
+  - **RabbitMQ**: AMQP / AMQPS URIs, Username & Password, custom Virtual Hosts (`/`, custom), TLS/SSL (CA & Client Certificates, Insecure Skip Verify), and auto-derived or explicit Management HTTP URLs.
 - **Persistent Profiles**: Connection configurations are stored locally in an embedded, pure-Go SQLite database (`modernc.org/sqlite`).
 - **Live Diagnostics**: Real-time heartbeat, round-trip time (RTT latency in ms), active broker node count, and connection health status.
 
@@ -128,12 +130,34 @@ It also features a built-in, local **Model Context Protocol (MCP) Server**, enab
 
 ---
 
+### 🐇 RabbitMQ & AMQP 0-9-1 Suite
+
+#### 1. Cluster & Virtual Host Overview
+- **Cluster Diagnostics**: Broker version, Erlang/OTP version, uptime, memory, disk free, and file descriptors.
+- **Message Rate Gauges**: Live publish, deliver/get, ack, and redeliver rates with dynamic auto-refresh.
+- **Virtual Host Explorer**: Inspect queues, exchanges, and permissions partitioned cleanly per virtual host.
+
+#### 2. Queue & Exchange Management
+- **Queue Operations**: Create Classic, Quorum, and Stream queues with TTL, Max Length, DLX/DLK parameters, and single-click queue purge.
+- **Exchange Topology**: Declare Direct, Fanout, Topic, and Headers exchanges with alternate exchange support.
+- **Binding Matrix**: Bind and unbind queues and exchanges with custom routing keys and header arguments.
+
+#### 3. Message Studio & Live Consumer
+- **Safe Peek Mode**: Non-destructively inspect messages via Management API or AMQP `Basic.Get` without altering queue order.
+- **Live Push Streaming**: Stream messages in real time with configurable QoS prefetch counts and auto-ack toggle.
+- **Message Inspector & Publisher**: Formatted JSON, raw text, and hex view. Publish messages with custom delivery modes (persistent), headers, and routing keys.
+
+#### 4. Dead Letter Queue (DLQ) Redrive
+- **Automated DLX Routing**: Move dead-lettered messages back to source queues or designated retry exchanges with custom routing keys.
+
+---
+
 ### 🤖 Embedded Model Context Protocol (MCP) Server
 
 Streamer includes a built-in local MCP SSE Server (`http://127.0.0.1:<port>/sse`) designed to allow LLMs and AI coding assistants to interact with your streaming infrastructure.
 
 - **4-Meta-Tool Interface**: Rather than polluting the model's context window with 50+ individual tools, Streamer exposes 4 clean meta-tools:
-  - `list_actions`: Filter and discover available operations across Kafka, NATS, and SQS.
+  - `list_actions`: Filter and discover available operations across Kafka, NATS, SQS, and RabbitMQ.
   - `get_action_schema`: Retrieve complete JSON parameter schemas on demand.
   - `run_action`: Execute single actions with intelligent parameter normalization and payload serialization.
   - `run_action_sequence`: Execute multi-step operations sequentially with dependency output piping.
@@ -151,6 +175,7 @@ Streamer includes a built-in local MCP SSE Server (`http://127.0.0.1:<port>/sse`
 | **Kafka Engine** | [`franz-go`](https://github.com/twmb/franz-go) | **100% Pure Go** Kafka client library (Zero CGO, no librdkafka dependencies) |
 | **NATS Engine** | [`nats.go`](https://github.com/nats-io/nats.go) | Official high-performance pure-Go NATS and JetStream client |
 | **SQS Engine** | [`aws-sdk-go-v2`](https://github.com/aws/aws-sdk-go-v2) | Official pure-Go modular AWS SDK v2 for Amazon SQS |
+| **RabbitMQ Engine** | [`amqp091-go`](https://github.com/rabbitmq/amqp091-go) & [`rabbit-hole`](https://github.com/michaelklishin/rabbit-hole) | Official RabbitMQ Go AMQP client and Management HTTP client |
 | **MCP Server** | [`mcp-go`](https://github.com/mark3labs/mcp-go) | Pure-Go Model Context Protocol SSE server |
 | **Local Database** | [`modernc.org/sqlite`](https://gitlab.com/cznic/sqlite) | CGO-free pure Go SQLite driver for cross-platform persistence |
 | **Frontend UI** | React 18, TypeScript, Tailwind CSS, Lucide Icons | Modern, responsive developer tool interface with dark mode styling |

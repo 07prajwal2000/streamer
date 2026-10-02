@@ -8,7 +8,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.4
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.0
 	github.com/mark3labs/mcp-go v1.0.0
+	github.com/michaelklishin/rabbit-hole/v3 v3.5.0
 	github.com/nats-io/nats.go v1.53.1
+	github.com/rabbitmq/amqp091-go v1.15.0
 	github.com/twmb/franz-go v1.21.6
 	github.com/twmb/franz-go/pkg/kadm v1.18.0
 	github.com/wailsapp/wails/v2 v2.15.0

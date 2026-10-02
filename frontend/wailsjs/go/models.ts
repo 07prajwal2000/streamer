@@ -954,6 +954,788 @@ export namespace natsmanager {
 
 }
 
+export namespace rabbitmqmanager {
+	
+	export class ConsumeRMQMessagesParams {
+	    vhost: string;
+	    queueName: string;
+	    prefetchCount: number;
+	    autoAck: boolean;
+	    exclusive: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConsumeRMQMessagesParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.vhost = source["vhost"];
+	        this.queueName = source["queueName"];
+	        this.prefetchCount = source["prefetchCount"];
+	        this.autoAck = source["autoAck"];
+	        this.exclusive = source["exclusive"];
+	    }
+	}
+	export class CreateBindingParams {
+	    vhost: string;
+	    source: string;
+	    destination: string;
+	    destinationType: string;
+	    routingKey: string;
+	    arguments?: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateBindingParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.vhost = source["vhost"];
+	        this.source = source["source"];
+	        this.destination = source["destination"];
+	        this.destinationType = source["destinationType"];
+	        this.routingKey = source["routingKey"];
+	        this.arguments = source["arguments"];
+	    }
+	}
+	export class CreateExchangeParams {
+	    name: string;
+	    vhost: string;
+	    type: string;
+	    durable: boolean;
+	    autoDelete: boolean;
+	    internal: boolean;
+	    customArguments?: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateExchangeParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.vhost = source["vhost"];
+	        this.type = source["type"];
+	        this.durable = source["durable"];
+	        this.autoDelete = source["autoDelete"];
+	        this.internal = source["internal"];
+	        this.customArguments = source["customArguments"];
+	    }
+	}
+	export class CreateQueueParams {
+	    name: string;
+	    vhost: string;
+	    type: string;
+	    durable: boolean;
+	    autoDelete: boolean;
+	    exclusive: boolean;
+	    messageTtl?: number;
+	    autoExpire?: number;
+	    maxLength?: number;
+	    maxLengthBytes?: number;
+	    maxPriority?: number;
+	    deadLetterExchange?: string;
+	    deadLetterRoutingKey?: string;
+	    overflow?: string;
+	    deliveryLimit?: number;
+	    customArguments?: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateQueueParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.vhost = source["vhost"];
+	        this.type = source["type"];
+	        this.durable = source["durable"];
+	        this.autoDelete = source["autoDelete"];
+	        this.exclusive = source["exclusive"];
+	        this.messageTtl = source["messageTtl"];
+	        this.autoExpire = source["autoExpire"];
+	        this.maxLength = source["maxLength"];
+	        this.maxLengthBytes = source["maxLengthBytes"];
+	        this.maxPriority = source["maxPriority"];
+	        this.deadLetterExchange = source["deadLetterExchange"];
+	        this.deadLetterRoutingKey = source["deadLetterRoutingKey"];
+	        this.overflow = source["overflow"];
+	        this.deliveryLimit = source["deliveryLimit"];
+	        this.customArguments = source["customArguments"];
+	    }
+	}
+	export class PeekRMQMessagesParams {
+	    vhost: string;
+	    queueName: string;
+	    count: number;
+	    ackMode: string;
+	    encoding: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PeekRMQMessagesParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.vhost = source["vhost"];
+	        this.queueName = source["queueName"];
+	        this.count = source["count"];
+	        this.ackMode = source["ackMode"];
+	        this.encoding = source["encoding"];
+	    }
+	}
+	export class PublishRMQMessageParams {
+	    vhost: string;
+	    exchange: string;
+	    routingKey: string;
+	    payload: string;
+	    contentType: string;
+	    deliveryMode: number;
+	    priority: number;
+	    correlationId?: string;
+	    replyTo?: string;
+	    expiration?: string;
+	    messageId?: string;
+	    type?: string;
+	    headers?: Record<string, any>;
+	    mandatory: boolean;
+	    waitForConfirm: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PublishRMQMessageParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.vhost = source["vhost"];
+	        this.exchange = source["exchange"];
+	        this.routingKey = source["routingKey"];
+	        this.payload = source["payload"];
+	        this.contentType = source["contentType"];
+	        this.deliveryMode = source["deliveryMode"];
+	        this.priority = source["priority"];
+	        this.correlationId = source["correlationId"];
+	        this.replyTo = source["replyTo"];
+	        this.expiration = source["expiration"];
+	        this.messageId = source["messageId"];
+	        this.type = source["type"];
+	        this.headers = source["headers"];
+	        this.mandatory = source["mandatory"];
+	        this.waitForConfirm = source["waitForConfirm"];
+	    }
+	}
+	export class PublishRMQMessageResult {
+	    success: boolean;
+	    confirmed: boolean;
+	    returned: boolean;
+	    returnReason?: string;
+	    messageId?: string;
+	    timestamp: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PublishRMQMessageResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.confirmed = source["confirmed"];
+	        this.returned = source["returned"];
+	        this.returnReason = source["returnReason"];
+	        this.messageId = source["messageId"];
+	        this.timestamp = source["timestamp"];
+	    }
+	}
+	export class RMQBindingInfo {
+	    source: string;
+	    vhost: string;
+	    destination: string;
+	    destinationType: string;
+	    routingKey: string;
+	    arguments?: Record<string, any>;
+	    propertiesKey?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQBindingInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.source = source["source"];
+	        this.vhost = source["vhost"];
+	        this.destination = source["destination"];
+	        this.destinationType = source["destinationType"];
+	        this.routingKey = source["routingKey"];
+	        this.arguments = source["arguments"];
+	        this.propertiesKey = source["propertiesKey"];
+	    }
+	}
+	export class RMQMessageRates {
+	    publishRate: number;
+	    deliverRate: number;
+	    ackRate: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQMessageRates(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.publishRate = source["publishRate"];
+	        this.deliverRate = source["deliverRate"];
+	        this.ackRate = source["ackRate"];
+	    }
+	}
+	export class RMQClusterStatus {
+	    connected: boolean;
+	    connecting: boolean;
+	    protocol: string;
+	    lastError?: string;
+	    currentProfileId?: string;
+	    endpoint: string;
+	    managementUrl?: string;
+	    managementAvailable: boolean;
+	    vhost: string;
+	    clusterName?: string;
+	    rabbitmqVersion?: string;
+	    erlangVersion?: string;
+	    queuesCount: number;
+	    exchangesCount: number;
+	    connectionsCount: number;
+	    channelsCount: number;
+	    consumersCount: number;
+	    rttMs: number;
+	    diskFreeAlarm: boolean;
+	    memoryAlarm: boolean;
+	    messageRates?: RMQMessageRates;
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQClusterStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connected = source["connected"];
+	        this.connecting = source["connecting"];
+	        this.protocol = source["protocol"];
+	        this.lastError = source["lastError"];
+	        this.currentProfileId = source["currentProfileId"];
+	        this.endpoint = source["endpoint"];
+	        this.managementUrl = source["managementUrl"];
+	        this.managementAvailable = source["managementAvailable"];
+	        this.vhost = source["vhost"];
+	        this.clusterName = source["clusterName"];
+	        this.rabbitmqVersion = source["rabbitmqVersion"];
+	        this.erlangVersion = source["erlangVersion"];
+	        this.queuesCount = source["queuesCount"];
+	        this.exchangesCount = source["exchangesCount"];
+	        this.connectionsCount = source["connectionsCount"];
+	        this.channelsCount = source["channelsCount"];
+	        this.consumersCount = source["consumersCount"];
+	        this.rttMs = source["rttMs"];
+	        this.diskFreeAlarm = source["diskFreeAlarm"];
+	        this.memoryAlarm = source["memoryAlarm"];
+	        this.messageRates = this.convertValues(source["messageRates"], RMQMessageRates);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class RMQConsumerInfo {
+	    consumerTag: string;
+	    channelPid: string;
+	    prefetch: number;
+	    ackRequired: boolean;
+	    exclusive: boolean;
+	    active: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQConsumerInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.consumerTag = source["consumerTag"];
+	        this.channelPid = source["channelPid"];
+	        this.prefetch = source["prefetch"];
+	        this.ackRequired = source["ackRequired"];
+	        this.exclusive = source["exclusive"];
+	        this.active = source["active"];
+	    }
+	}
+	export class RMQExchangeDetail {
+	    name: string;
+	    vhost: string;
+	    type: string;
+	    durable: boolean;
+	    autoDelete: boolean;
+	    internal: boolean;
+	    arguments?: Record<string, any>;
+	    messageRates: RMQMessageRates;
+	    bindingsSource: RMQBindingInfo[];
+	    bindingsDestination: RMQBindingInfo[];
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQExchangeDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.vhost = source["vhost"];
+	        this.type = source["type"];
+	        this.durable = source["durable"];
+	        this.autoDelete = source["autoDelete"];
+	        this.internal = source["internal"];
+	        this.arguments = source["arguments"];
+	        this.messageRates = this.convertValues(source["messageRates"], RMQMessageRates);
+	        this.bindingsSource = this.convertValues(source["bindingsSource"], RMQBindingInfo);
+	        this.bindingsDestination = this.convertValues(source["bindingsDestination"], RMQBindingInfo);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class RMQExchangeSummary {
+	    name: string;
+	    vhost: string;
+	    type: string;
+	    durable: boolean;
+	    autoDelete: boolean;
+	    internal: boolean;
+	    arguments?: Record<string, any>;
+	    messageRates: RMQMessageRates;
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQExchangeSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.vhost = source["vhost"];
+	        this.type = source["type"];
+	        this.durable = source["durable"];
+	        this.autoDelete = source["autoDelete"];
+	        this.internal = source["internal"];
+	        this.arguments = source["arguments"];
+	        this.messageRates = this.convertValues(source["messageRates"], RMQMessageRates);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class RMQMessage {
+	    payload: string;
+	    payloadBytes: number;
+	    payloadEncoding: string;
+	    exchange: string;
+	    routingKey: string;
+	    deliveryTag: number;
+	    redelivered: boolean;
+	    messageCount: number;
+	    contentType: string;
+	    contentEncoding: string;
+	    deliveryMode: number;
+	    priority: number;
+	    correlationId?: string;
+	    replyTo?: string;
+	    expiration?: string;
+	    messageId?: string;
+	    timestamp: number;
+	    type?: string;
+	    userId?: string;
+	    appId?: string;
+	    headers?: Record<string, any>;
+	    queueName?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQMessage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.payload = source["payload"];
+	        this.payloadBytes = source["payloadBytes"];
+	        this.payloadEncoding = source["payloadEncoding"];
+	        this.exchange = source["exchange"];
+	        this.routingKey = source["routingKey"];
+	        this.deliveryTag = source["deliveryTag"];
+	        this.redelivered = source["redelivered"];
+	        this.messageCount = source["messageCount"];
+	        this.contentType = source["contentType"];
+	        this.contentEncoding = source["contentEncoding"];
+	        this.deliveryMode = source["deliveryMode"];
+	        this.priority = source["priority"];
+	        this.correlationId = source["correlationId"];
+	        this.replyTo = source["replyTo"];
+	        this.expiration = source["expiration"];
+	        this.messageId = source["messageId"];
+	        this.timestamp = source["timestamp"];
+	        this.type = source["type"];
+	        this.userId = source["userId"];
+	        this.appId = source["appId"];
+	        this.headers = source["headers"];
+	        this.queueName = source["queueName"];
+	    }
+	}
+	
+	export class RMQNodeInfo {
+	    name: string;
+	    type: string;
+	    running: boolean;
+	    uptimeSeconds: number;
+	    memUsed: number;
+	    memLimit: number;
+	    memAlarm: boolean;
+	    diskFree: number;
+	    diskFreeLimit: number;
+	    diskFreeAlarm: boolean;
+	    fdUsed: number;
+	    fdTotal: number;
+	    socketsUsed: number;
+	    socketsTotal: number;
+	    processorsCount: number;
+	    erlangProcesses: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQNodeInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.type = source["type"];
+	        this.running = source["running"];
+	        this.uptimeSeconds = source["uptimeSeconds"];
+	        this.memUsed = source["memUsed"];
+	        this.memLimit = source["memLimit"];
+	        this.memAlarm = source["memAlarm"];
+	        this.diskFree = source["diskFree"];
+	        this.diskFreeLimit = source["diskFreeLimit"];
+	        this.diskFreeAlarm = source["diskFreeAlarm"];
+	        this.fdUsed = source["fdUsed"];
+	        this.fdTotal = source["fdTotal"];
+	        this.socketsUsed = source["socketsUsed"];
+	        this.socketsTotal = source["socketsTotal"];
+	        this.processorsCount = source["processorsCount"];
+	        this.erlangProcesses = source["erlangProcesses"];
+	    }
+	}
+	export class RMQOverview {
+	    clusterName: string;
+	    rabbitmqVersion: string;
+	    erlangVersion: string;
+	    totalQueues: number;
+	    totalExchanges: number;
+	    totalConnections: number;
+	    totalChannels: number;
+	    totalConsumers: number;
+	    totalMessages: number;
+	    messagesReady: number;
+	    messagesUnack: number;
+	    messageRates: RMQMessageRates;
+	    diskFreeAlarm: boolean;
+	    memoryAlarm: boolean;
+	    vhosts: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQOverview(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.clusterName = source["clusterName"];
+	        this.rabbitmqVersion = source["rabbitmqVersion"];
+	        this.erlangVersion = source["erlangVersion"];
+	        this.totalQueues = source["totalQueues"];
+	        this.totalExchanges = source["totalExchanges"];
+	        this.totalConnections = source["totalConnections"];
+	        this.totalChannels = source["totalChannels"];
+	        this.totalConsumers = source["totalConsumers"];
+	        this.totalMessages = source["totalMessages"];
+	        this.messagesReady = source["messagesReady"];
+	        this.messagesUnack = source["messagesUnack"];
+	        this.messageRates = this.convertValues(source["messageRates"], RMQMessageRates);
+	        this.diskFreeAlarm = source["diskFreeAlarm"];
+	        this.memoryAlarm = source["memoryAlarm"];
+	        this.vhosts = source["vhosts"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class RMQQueueDetail {
+	    name: string;
+	    vhost: string;
+	    type: string;
+	    durable: boolean;
+	    autoDelete: boolean;
+	    exclusive: boolean;
+	    state: string;
+	    messages: number;
+	    messagesReady: number;
+	    messagesUnacknowledged: number;
+	    consumers: number;
+	    memory: number;
+	    leaderNode?: string;
+	    messageRates: RMQMessageRates;
+	    arguments?: Record<string, any>;
+	    hasDlx: boolean;
+	    dlxTarget?: string;
+	    dlxRoutingKey?: string;
+	    consumersList: RMQConsumerInfo[];
+	    bindings: RMQBindingInfo[];
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQQueueDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.vhost = source["vhost"];
+	        this.type = source["type"];
+	        this.durable = source["durable"];
+	        this.autoDelete = source["autoDelete"];
+	        this.exclusive = source["exclusive"];
+	        this.state = source["state"];
+	        this.messages = source["messages"];
+	        this.messagesReady = source["messagesReady"];
+	        this.messagesUnacknowledged = source["messagesUnacknowledged"];
+	        this.consumers = source["consumers"];
+	        this.memory = source["memory"];
+	        this.leaderNode = source["leaderNode"];
+	        this.messageRates = this.convertValues(source["messageRates"], RMQMessageRates);
+	        this.arguments = source["arguments"];
+	        this.hasDlx = source["hasDlx"];
+	        this.dlxTarget = source["dlxTarget"];
+	        this.dlxRoutingKey = source["dlxRoutingKey"];
+	        this.consumersList = this.convertValues(source["consumersList"], RMQConsumerInfo);
+	        this.bindings = this.convertValues(source["bindings"], RMQBindingInfo);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class RMQQueueSummary {
+	    name: string;
+	    vhost: string;
+	    type: string;
+	    durable: boolean;
+	    autoDelete: boolean;
+	    exclusive: boolean;
+	    state: string;
+	    messages: number;
+	    messagesReady: number;
+	    messagesUnacknowledged: number;
+	    consumers: number;
+	    memory: number;
+	    leaderNode?: string;
+	    messageRates: RMQMessageRates;
+	    arguments?: Record<string, any>;
+	    hasDlx: boolean;
+	    dlxTarget?: string;
+	    dlxRoutingKey?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQQueueSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.vhost = source["vhost"];
+	        this.type = source["type"];
+	        this.durable = source["durable"];
+	        this.autoDelete = source["autoDelete"];
+	        this.exclusive = source["exclusive"];
+	        this.state = source["state"];
+	        this.messages = source["messages"];
+	        this.messagesReady = source["messagesReady"];
+	        this.messagesUnacknowledged = source["messagesUnacknowledged"];
+	        this.consumers = source["consumers"];
+	        this.memory = source["memory"];
+	        this.leaderNode = source["leaderNode"];
+	        this.messageRates = this.convertValues(source["messageRates"], RMQMessageRates);
+	        this.arguments = source["arguments"];
+	        this.hasDlx = source["hasDlx"];
+	        this.dlxTarget = source["dlxTarget"];
+	        this.dlxRoutingKey = source["dlxRoutingKey"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class RMQVHostInfo {
+	    name: string;
+	    messages: number;
+	    messagesReady: number;
+	    messagesUnacknowledged: number;
+	    tracing: boolean;
+	    messageRates: RMQMessageRates;
+	
+	    static createFrom(source: any = {}) {
+	        return new RMQVHostInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.messages = source["messages"];
+	        this.messagesReady = source["messagesReady"];
+	        this.messagesUnacknowledged = source["messagesUnacknowledged"];
+	        this.tracing = source["tracing"];
+	        this.messageRates = this.convertValues(source["messageRates"], RMQMessageRates);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class RedriveDLQParams {
+	    vhost: string;
+	    sourceQueue: string;
+	    targetExchange: string;
+	    targetRoutingKey: string;
+	    maxMessages: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new RedriveDLQParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.vhost = source["vhost"];
+	        this.sourceQueue = source["sourceQueue"];
+	        this.targetExchange = source["targetExchange"];
+	        this.targetRoutingKey = source["targetRoutingKey"];
+	        this.maxMessages = source["maxMessages"];
+	    }
+	}
+	export class RedriveDLQResult {
+	    movedCount: number;
+	    failedCount: number;
+	    errors?: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new RedriveDLQResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.movedCount = source["movedCount"];
+	        this.failedCount = source["failedCount"];
+	        this.errors = source["errors"];
+	    }
+	}
+
+}
+
 export namespace sqsmanager {
 	
 	export class CreateQueueParams {
@@ -1351,6 +2133,8 @@ export namespace storage {
 	    clientName: string;
 	    awsRegion?: string;
 	    awsProfile?: string;
+	    managementUrl?: string;
+	    vhost?: string;
 	    // Go type: time
 	    createdAt: any;
 	    // Go type: time
@@ -1382,6 +2166,8 @@ export namespace storage {
 	        this.clientName = source["clientName"];
 	        this.awsRegion = source["awsRegion"];
 	        this.awsProfile = source["awsProfile"];
+	        this.managementUrl = source["managementUrl"];
+	        this.vhost = source["vhost"];
 	        this.createdAt = this.convertValues(source["createdAt"], null);
 	        this.updatedAt = this.convertValues(source["updatedAt"], null);
 	        this.lastConnectedAt = this.convertValues(source["lastConnectedAt"], null);
