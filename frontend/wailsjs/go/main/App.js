@@ -22,6 +22,10 @@ export function CreateKafkaTopic(arg1) {
   return window['go']['main']['App']['CreateKafkaTopic'](arg1);
 }
 
+export function CreateObjectBucket(arg1) {
+  return window['go']['main']['App']['CreateObjectBucket'](arg1);
+}
+
 export function CreateRabbitMQBinding(arg1) {
   return window['go']['main']['App']['CreateRabbitMQBinding'](arg1);
 }
@@ -70,6 +74,14 @@ export function DeleteKafkaTopic(arg1) {
   return window['go']['main']['App']['DeleteKafkaTopic'](arg1);
 }
 
+export function DeleteObject(arg1, arg2) {
+  return window['go']['main']['App']['DeleteObject'](arg1, arg2);
+}
+
+export function DeleteObjectBucket(arg1) {
+  return window['go']['main']['App']['DeleteObjectBucket'](arg1);
+}
+
 export function DeleteRabbitMQBinding(arg1) {
   return window['go']['main']['App']['DeleteRabbitMQBinding'](arg1);
 }
@@ -100,6 +112,10 @@ export function DeleteStreamMsg(arg1, arg2) {
 
 export function Disconnect() {
   return window['go']['main']['App']['Disconnect']();
+}
+
+export function DownloadObject(arg1, arg2) {
+  return window['go']['main']['App']['DownloadObject'](arg1, arg2);
 }
 
 export function GetActiveSubscriptions() {
@@ -148,6 +164,18 @@ export function GetKafkaTopicDetails(arg1) {
 
 export function GetMCPServerStatus() {
   return window['go']['main']['App']['GetMCPServerStatus']();
+}
+
+export function GetObjectBucket(arg1) {
+  return window['go']['main']['App']['GetObjectBucket'](arg1);
+}
+
+export function GetObjectInfo(arg1, arg2) {
+  return window['go']['main']['App']['GetObjectInfo'](arg1, arg2);
+}
+
+export function GetObjectPreview(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetObjectPreview'](arg1, arg2, arg3);
 }
 
 export function GetRabbitMQExchangeDetails(arg1, arg2) {
@@ -208,6 +236,14 @@ export function ListKafkaConsumerGroups() {
 
 export function ListKafkaTopics(arg1) {
   return window['go']['main']['App']['ListKafkaTopics'](arg1);
+}
+
+export function ListObjectBuckets() {
+  return window['go']['main']['App']['ListObjectBuckets']();
+}
+
+export function ListObjects(arg1) {
+  return window['go']['main']['App']['ListObjects'](arg1);
 }
 
 export function ListRabbitMQBindings(arg1) {
@@ -290,6 +326,14 @@ export function PutKVEntry(arg1, arg2, arg3) {
   return window['go']['main']['App']['PutKVEntry'](arg1, arg2, arg3);
 }
 
+export function PutObjectFromBase64(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['PutObjectFromBase64'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function PutObjectFromFile(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['PutObjectFromFile'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function RedriveDLQ(arg1) {
   return window['go']['main']['App']['RedriveDLQ'](arg1);
 }
@@ -308,6 +352,10 @@ export function ResetKafkaConsumerGroupOffsets(arg1) {
 
 export function SaveConnection(arg1) {
   return window['go']['main']['App']['SaveConnection'](arg1);
+}
+
+export function SealObjectBucket(arg1) {
+  return window['go']['main']['App']['SealObjectBucket'](arg1);
 }
 
 export function SelectFile(arg1, arg2, arg3) {

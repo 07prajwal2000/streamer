@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <b>A unified, high-performance desktop GUI suite for Apache Kafka, Redpanda, NATS (JetStream & KV), Amazon SQS, and RabbitMQ (AMQP 0-9-1) — featuring an embedded Model Context Protocol (MCP) Server for AI agents.</b>
+  <b>A unified, high-performance desktop GUI suite for Apache Kafka, Redpanda, NATS (JetStream, KV & Object Store), Amazon SQS, and RabbitMQ (AMQP 0-9-1) — featuring an embedded Model Context Protocol (MCP) Server for AI agents.</b>
   <br />
   Built with <b>Pure Go</b> (Zero CGO), <b>Wails v2</b>, <b>React 18</b>, <b>TypeScript</b>, and <b>Tailwind CSS</b>.
 </p>
@@ -108,6 +108,13 @@ It also features a built-in, local **Model Context Protocol (MCP) Server**, enab
 - **Interactive Put Key Modal**: Dual edit and syntax-highlighted formatted tree tabs with one-click JSON prettifier and validation.
 - **Revision History**: Inspect all historical values, sequence numbers, and timestamps of any key.
 - **Watch & Search**: Fast real-time filtering across bucket keys.
+
+#### 4. Object Store Browser (Object Blobs)
+- **Bucket Management**: Create and manage JetStream Object Stores with File or Memory storage engines, replicas, TTL, max bytes, and stream compression (`lz4`). Permanently seal buckets into read-only mode.
+- **Native Save As Download**: Direct-to-disk chunk streaming downloads via the OS native Save File dialog without buffering huge files into RAM.
+- **Dual-Mode Upload**: Upload local files directly from disk (or drag & drop), or provide Base64 strings / raw text with custom object names, descriptions, and user metadata key-values.
+- **Object Inspector Drawer**: View file size, chunks count, modified timestamps, internal NUID, custom metadata, and SHA-256 integrity digests with one-click copy.
+- **Content Previews**: Built-in visual preview for images, formatted syntax viewer for text/JSON/code, and base64 hex display for binary blobs.
 
 ---
 

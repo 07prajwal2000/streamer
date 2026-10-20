@@ -5,6 +5,7 @@ import { ConnectionView } from './components/ConnectionView';
 import { PubSubView } from './components/pubsub/PubSubView';
 import { JetStreamView } from './components/jetstream/JetStreamView';
 import { KVView } from './components/kv/KVView';
+import { ObjectStoreView } from './components/objectstore/ObjectStoreView';
 import { KafkaClusterView } from './components/kafka/KafkaClusterView';
 import { KafkaTopicsView } from './components/kafka/KafkaTopicsView';
 import { KafkaConsumerGroupsView } from './components/kafka/KafkaConsumerGroupsView';
@@ -249,6 +250,10 @@ export function App() {
 
         <div className={`h-full w-full flex flex-col ${activeTab === 'kv' ? '' : 'hidden'}`}>
           <KVView isConnected={activeStatus.connected} isActiveTab={activeTab === 'kv'} />
+        </div>
+
+        <div className={`h-full w-full flex flex-col ${activeTab === 'objects' ? '' : 'hidden'}`}>
+          <ObjectStoreView isConnected={activeStatus.connected} isActiveTab={activeTab === 'objects'} />
         </div>
 
         <div className={`h-full w-full flex flex-col ${activeTab === 'kafka-cluster' ? '' : 'hidden'}`}>

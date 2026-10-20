@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"streamer/internal/kafkamanager"
 	"streamer/internal/mcpserver"
@@ -490,6 +492,139 @@ func (a *App) PurgeKVEntry(bucket string, key string) error {
 
 func (a *App) GetKVHistory(bucket string, key string) ([]natsmanager.KVEntryInfo, error) {
 	return a.natsManager.GetKVHistory(a.ctx, bucket, key)
+}
+
+// -------------------------------------------------------------
+// Object Store API Bindings
+// -------------------------------------------------------------
+
+func (a *App) ListObjectBuckets() ([]natsmanager.ObjectBucketInfo, error) {
+	return a.natsManager.ListObjectBuckets(a.ctx)
+}
+
+func (a *App) GetObjectBucket(bucket string) (*natsmanager.ObjectBucketInfo, error) {
+	return a.natsManager.GetObjectBucket(a.ctx, bucket)
+}
+
+func (a *App) CreateObjectBucket(p natsmanager.ObjectBucketCreateParams) error {
+	return a.natsManager.CreateObjectBucket(a.ctx, p)
+}
+
+func (a *App) DeleteObjectBucket(bucket string) error {
+	return a.natsManager.DeleteObjectBucket(a.ctx, bucket)
+}
+
+func (a *App) SealObjectBucket(bucket string) error {
+	return a.natsManager.SealObjectBucket(a.ctx, bucket)
+}
+
+func (a *App) ListObjects(bucket string) ([]natsmanager.ObjectEntryInfo, error) {
+	return a.natsManager.ListObjects(a.ctx, bucket)
+}
+
+func (a *App) GetObjectInfo(bucket string, name string) (*natsmanager.ObjectEntryInfo, error) {
+	return a.natsManager.GetObjectInfo(a.ctx, bucket, name)
+}
+
+// DownloadObject prompts a native Save As dialog, then streams the object directly to the chosen file path
+func (a *App) DownloadObject(bucket string, name string) (bool, string, error) {
+	savePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           fmt.Sprintf("Save %s", name),
+		DefaultFilename: name,
+	})
+	if err != nil {
+		return false, "", err
+	}
+	if savePath == "" {
+		// User canceled dialog
+		return false, "", nil
+	}
+
+	if err := a.natsManager.SaveObjectToFile(a.ctx, bucket, name, savePath); err != nil {
+		return false, "", err
+	}
+	return true, savePath, nil
+}
+
+// PutObjectFromBase64 decodes base64 content and stores it in the object store
+func (a *App) PutObjectFromBase64(bucket string, name string, description string, base64Content string, meta map[string]string) (*natsmanager.ObjectEntryInfo, error) {
+	idx := strings.Index(base64Content, ";base64,")
+	rawB64 := base64Content
+	if idx != -1 {
+		rawB64 = base64Content[idx+8:]
+	}
+
+	data, err := base64.StdEncoding.DecodeString(rawB64)
+	if err != nil {
+		data = []byte(base64Content)
+	}
+
+	return a.natsManager.PutObjectBytes(a.ctx, bucket, name, description, data, meta)
+}
+
+// PutObjectFromFile streams a chosen local file from disk directly into the object store
+func (a *App) PutObjectFromFile(bucket string, name string, description string, filePath string, meta map[string]string) (*natsmanager.ObjectEntryInfo, error) {
+	return a.natsManager.PutObjectFile(a.ctx, bucket, name, description, filePath, meta)
+}
+
+// ObjectContentPreview represents a preview of an object's contents
+type ObjectContentPreview struct {
+	Name      string `json:"name"`
+	Size      uint64 `json:"size"`
+	IsBinary  bool   `json:"isBinary"`
+	Truncated bool   `json:"truncated"`
+	Text      string `json:"text,omitempty"`
+	Base64    string `json:"base64,omitempty"`
+}
+
+// GetObjectPreview returns a preview of the object's content up to maxBytes (default 1MB)
+func (a *App) GetObjectPreview(bucket string, name string, maxBytes int64) (*ObjectContentPreview, error) {
+	if maxBytes <= 0 || maxBytes > 5*1024*1024 {
+		maxBytes = 1024 * 1024 // 1MB default preview limit
+	}
+
+	info, err := a.natsManager.GetObjectInfo(a.ctx, bucket, name)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := a.natsManager.GetObjectBytes(a.ctx, bucket, name)
+	if err != nil {
+		return nil, err
+	}
+
+	truncated := false
+	if int64(len(data)) > maxBytes {
+		data = data[:maxBytes]
+		truncated = true
+	}
+
+	bin := false
+	for _, b := range data {
+		if b == 0 {
+			bin = true
+			break
+		}
+	}
+
+	preview := &ObjectContentPreview{
+		Name:      name,
+		Size:      info.Size,
+		IsBinary:  bin,
+		Truncated: truncated,
+	}
+
+	if bin {
+		preview.Base64 = base64.StdEncoding.EncodeToString(data)
+	} else {
+		preview.Text = string(data)
+	}
+
+	return preview, nil
+}
+
+func (a *App) DeleteObject(bucket string, name string) error {
+	return a.natsManager.DeleteObject(a.ctx, bucket, name)
 }
 
 // -------------------------------------------------------------

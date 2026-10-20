@@ -4,6 +4,7 @@ import {
   Radio, 
   Layers, 
   KeyRound, 
+  Archive, 
   Plus, 
   CheckCircle2, 
   AlertCircle, 
@@ -264,6 +265,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <KeyRound className="w-3.5 h-3.5" />
               <span>KV Store</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('objects')}
+              disabled={!activeStatus.connected || !activeStatus.jetStream}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                !activeStatus.connected || !activeStatus.jetStream
+                  ? 'opacity-40 cursor-not-allowed text-gray-500'
+                  : activeTab === 'objects'
+                  ? 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#151b23]'
+              }`}
+            >
+              <Archive className="w-3.5 h-3.5" />
+              <span>Object Store</span>
             </button>
           </>
         )}
